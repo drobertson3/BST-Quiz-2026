@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HSC Business Studies — Quiz Arena</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f1226; --bg2:#181c3a; --card:#1e2347; --card2:#262c58;
+  --ink:#eef0ff; --ink2:#9aa0c7; --accent:#6c5ce7; --accent2:#a29bfe;
+  --good:#00d68f; --bad:#ff5e7a; --gold:#ffce54; --line:#32386b;
+  --ops:#4fc3f7; --mkt:#ff8a65; --fin:#81c784; --hr:#ba68c8;
+}
+*{box-sizing:border-box; margin:0; padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:linear-gradient(160deg,var(--bg) 0%,var(--bg2) 100%); min-height:100vh; color:var(--ink)}
+.wrap{max-width:860px; margin:0 auto; padding:16px}
+.screen{display:none; animation:fadeIn .25s ease}
+.screen.active{display:block}
+@keyframes fadeIn{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:none}}
+h1{font-size:1.5rem} h2{font-size:1.2rem; margin-bottom:12px}
+.muted{color:var(--ink2); font-size:.9rem}
+.card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:14px}
+.btn{display:inline-block; border:none; border-radius:12px; padding:13px 22px; font-size:1rem; font-weight:600; cursor:pointer; background:var(--card2); color:var(--ink); transition:transform .1s, filter .15s}
+.btn:hover{filter:brightness(1.15)} .btn:active{transform:scale(.97)}
+.btn.primary{background:linear-gradient(135deg,var(--accent),#8e44ad); color:#fff}
+.btn.ghost{background:transparent; border:1px solid var(--line)}
+.btn.small{padding:8px 14px; font-size:.85rem}
+.btn:disabled{opacity:.4; cursor:not-allowed}
+.row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+@media(max-width:560px){.grid2{grid-template-columns:1fr}}
+input[type=text],input[type=number],input[type=password],select{background:var(--bg2); border:1px solid var(--line); color:var(--ink); border-radius:10px; padding:12px; font-size:1rem; width:100%}
+input:focus,select:focus{outline:2px solid var(--accent)}
+.banner{background:#3d2f00; color:var(--gold); border:1px solid #6b5300; padding:10px 14px; border-radius:10px; font-size:.85rem; margin-bottom:14px; display:none}
+.topbar{display:flex; justify-content:space-between; align-items:center; padding:10px 0 18px}
+.chip{background:var(--card2); border-radius:999px; padding:6px 14px; font-size:.85rem; font-weight:600}
+.namegrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; max-height:320px; overflow-y:auto; padding:4px}
+.namebtn{background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:14px 10px; color:var(--ink); font-size:.95rem; font-weight:600; cursor:pointer; text-align:center}
+.namebtn:hover{border-color:var(--accent); background:var(--card)}
+.pinrow{display:flex; gap:10px; justify-content:center; margin:16px 0}
+.pinbox{width:52px; height:60px; text-align:center; font-size:1.6rem; background:var(--bg2); border:1px solid var(--line); border-radius:12px; color:var(--ink)}
+.statgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px}
+.stat{background:var(--card2); border-radius:12px; padding:14px; text-align:center}
+.stat .v{font-size:1.5rem; font-weight:800} .stat .l{font-size:.75rem; color:var(--ink2); text-transform:uppercase; letter-spacing:.05em}
+.xpbar{height:10px; background:var(--bg2); border-radius:99px; overflow:hidden; margin-top:6px}
+.xpbar>div{height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:99px; transition:width .6s ease}
+.menu{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px}
+.menubtn{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px 16px; cursor:pointer; text-align:left; color:var(--ink)}
+.menubtn:hover{border-color:var(--accent)}
+.menubtn .e{font-size:1.8rem} .menubtn .t{font-weight:700; margin-top:8px} .menubtn .d{font-size:.8rem; color:var(--ink2); margin-top:2px}
+.preset{min-width:64px; text-align:center}
+.preset.sel,.topicbtn.sel{background:linear-gradient(135deg,var(--accent),#8e44ad); color:#fff; border-color:transparent}
+.topicbtn{border:1px solid var(--line)}
+label.opt{display:flex; align-items:center; gap:8px; font-size:.95rem; cursor:pointer}
+.qimgbox{background:#fff; border-radius:12px; padding:14px; margin:14px 0; text-align:center}
+.qimgbox img{max-width:100%; height:auto}
+.ansgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
+@media(max-width:480px){.ansgrid{grid-template-columns:repeat(2,1fr)}}
+.ansbtn{font-size:1.3rem; font-weight:800; padding:18px 0; border-radius:14px; border:2px solid var(--line); background:var(--card2); color:var(--ink); cursor:pointer; transition:all .15s}
+.ansbtn:hover:not(:disabled){border-color:var(--accent2); transform:translateY(-2px)}
+.ansbtn.correct{background:var(--good); border-color:var(--good); color:#03301f; animation:pop .3s ease}
+.ansbtn.wrong{background:var(--bad); border-color:var(--bad); color:#3d000d; animation:shake .35s ease}
+.ansbtn.reveal{border-color:var(--good); color:var(--good)}
+@keyframes pop{50%{transform:scale(1.08)}}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.feedback{border-radius:14px; padding:16px; margin-top:14px; display:none}
+.feedback.good{background:rgba(0,214,143,.12); border:1px solid var(--good)}
+.feedback.bad{background:rgba(255,94,122,.12); border:1px solid var(--bad)}
+.feedback .fh{font-weight:800; font-size:1.05rem; margin-bottom:6px}
+.feedback .tag{display:inline-block; background:var(--card2); border-radius:99px; padding:3px 10px; font-size:.75rem; color:var(--ink2); margin-top:10px; margin-right:6px}
+.quizhead{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap}
+.pbar{flex:1; min-width:120px; height:8px; background:var(--card2); border-radius:99px; overflow:hidden}
+.pbar>div{height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width .3s}
+.streak{font-weight:800; color:var(--gold)}
+.timer{font-variant-numeric:tabular-nums; font-weight:800}
+.timer.low{color:var(--bad); animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.4}}
+.bigscore{font-size:3.2rem; font-weight:900; text-align:center; background:linear-gradient(135deg,var(--accent2),var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent}
+.confetti{text-align:center; font-size:2rem}
+.topicrow{display:flex; align-items:center; gap:10px; margin:8px 0}
+.topicrow .tl{width:130px; font-size:.85rem}
+.tbar{flex:1; height:16px; background:var(--bg2); border-radius:99px; overflow:hidden}
+.tbar>div{height:100%; border-radius:99px}
+.badgegrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px}
+.badge{background:var(--card2); border-radius:12px; padding:12px; text-align:center; opacity:.35}
+.badge.on{opacity:1; border:1px solid var(--gold)}
+.badge .be{font-size:1.6rem} .badge .bn{font-weight:700; font-size:.85rem; margin-top:4px} .badge .bd{font-size:.7rem; color:var(--ink2)}
+table{width:100%; border-collapse:collapse; font-size:.92rem}
+th,td{padding:10px 8px; text-align:left; border-bottom:1px solid var(--line)}
+th{color:var(--ink2); font-size:.78rem; text-transform:uppercase; letter-spacing:.05em}
+tr.me{background:rgba(108,92,231,.15)}
+.rank1{color:var(--gold); font-weight:900} .rank2{color:#c0c8e8; font-weight:800} .rank3{color:#cd9b6a; font-weight:800}
+.newbadge{background:rgba(255,206,84,.12); border:1px solid var(--gold); border-radius:12px; padding:10px 14px; margin-top:10px; display:flex; gap:10px; align-items:center}
+.subselect{max-height:180px; overflow-y:auto; border:1px solid var(--line); border-radius:10px; padding:10px; margin-top:8px}
+.center{text-align:center}
+a.back{color:var(--accent2); cursor:pointer; font-size:.9rem; text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="localBanner" class="banner">⚠️ Practice mode — results are saved on this device only. Ask your teacher if scores should be syncing.</div>
+
+  <!-- ============ LOGIN ============ -->
+  <div id="scr-login" class="screen active">
+    <div class="center" style="padding:26px 0 18px">
+      <div style="font-size:2.6rem">🎓</div>
+      <h1>HSC Business Studies</h1>
+      <div class="muted">Section I Quiz Arena · 280 past HSC questions</div>
+    </div>
+    <div class="card" id="loginStep1">
+      <h2>Who's playing?</h2>
+      <input type="text" id="nameSearch" placeholder="Search your name..." style="margin-bottom:12px">
+      <div class="namegrid" id="nameGrid"></div>
+      <p class="muted" style="margin-top:12px">Name not listed? Ask your teacher to add you.</p>
+    </div>
+    <div class="card" id="loginStep2" style="display:none">
+      <a class="back" onclick="backToNames()">← back</a>
+      <h2 id="pinTitle" style="margin-top:10px"></h2>
+      <p class="muted" id="pinSub"></p>
+      <div class="pinrow">
+        <input class="pinbox" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input class="pinbox" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input class="pinbox" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input class="pinbox" maxlength="1" inputmode="numeric" pattern="[0-9]">
+      </div>
+      <p id="pinErr" style="color:var(--bad); text-align:center; display:none">Wrong PIN — try again</p>
+    </div>
+  </div>
+
+  <!-- ============ HOME ============ -->
+  <div id="scr-home" class="screen">
+    <div class="topbar">
+      <div><h1 id="homeName"></h1><div class="muted" id="homeLevel"></div></div>
+      <div class="row">
+        <span class="chip" id="homeXp"></span>
+        <button class="btn small ghost" onclick="logout()">Log out</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <span class="muted" id="xpLabel"></span><span class="muted" id="xpNext"></span>
+      </div>
+      <div class="xpbar"><div id="xpFill" style="width:0%"></div></div>
+    </div>
+    <div class="card"><div class="statgrid" id="homeStats"></div></div>
+    <div class="menu">
+      <button class="menubtn" onclick="showSetup('quiz')"><div class="e">🚀</div><div class="t">Start Quiz</div><div class="d">Random past HSC questions</div></button>
+      <button class="menubtn" onclick="startMistakes()"><div class="e">🔁</div><div class="t">My Mistakes</div><div class="d" id="mistakeCount">Retry questions you got wrong</div></button>
+      <button class="menubtn" onclick="showLeaderboard()"><div class="e">🏆</div><div class="t">Leaderboard</div><div class="d">Class rankings</div></button>
+      <button class="menubtn" onclick="showProgress()"><div class="e">📈</div><div class="t">My Progress</div><div class="d">Scores, topics & badges</div></button>
+    </div>
+  </div>
+
+  <!-- ============ SETUP ============ -->
+  <div id="scr-setup" class="screen">
+    <a class="back" onclick="go('home')">← home</a>
+    <h1 style="margin:10px 0 16px" id="setupTitle">Set up your quiz</h1>
+    <div class="card">
+      <h2>How many questions?</h2>
+      <div class="row">
+        <button class="btn preset" data-n="5">5</button>
+        <button class="btn preset sel" data-n="10">10</button>
+        <button class="btn preset" data-n="20">20</button>
+        <input type="number" id="customN" min="1" max="280" placeholder="Custom" style="width:110px">
+      </div>
+      <p class="muted" style="margin-top:8px" id="poolInfo"></p>
+    </div>
+    <div class="card">
+      <h2>Topics <span class="muted" style="font-weight:400">(leave all off for fully random)</span></h2>
+      <div class="row" id="topicBtns"></div>
+      <div id="subWrap" style="display:none">
+        <p class="muted" style="margin-top:12px">Narrow to syllabus areas (optional):</p>
+        <div class="subselect" id="subList"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="grid2">
+        <div>
+          <h2>Years</h2>
+          <div class="row">
+            <select id="yearFrom"></select><span class="muted">to</span><select id="yearTo"></select>
+          </div>
+        </div>
+        <div>
+          <h2>Timer</h2>
+          <label class="opt"><input type="checkbox" id="timerOn"> HSC pace — <span id="timerDesc"></span></label>
+        </div>
+      </div>
+    </div>
+    <div class="center" style="padding:6px 0 30px">
+      <button class="btn primary" style="font-size:1.15rem; padding:16px 44px" onclick="startQuiz()">Start! 🚀</button>
+    </div>
+  </div>
+
+  <!-- ============ QUIZ ============ -->
+  <div id="scr-quiz" class="screen">
+    <div class="quizhead" style="margin-bottom:12px">
+      <span class="chip" id="qCounter"></span>
+      <div class="pbar"><div id="qProgress"></div></div>
+      <span class="chip streak" id="qStreak" style="display:none"></span>
+      <span class="chip timer" id="qTimer" style="display:none"></span>
+      <button class="btn small ghost" onclick="quitQuiz()">Quit</button>
+    </div>
+    <div class="card" style="padding:14px">
+      <div class="muted" id="qMeta"></div>
+      <div class="qimgbox"><img id="qImg" alt="HSC question"></div>
+      <div class="ansgrid">
+        <button class="ansbtn" data-l="A">A</button>
+        <button class="ansbtn" data-l="B">B</button>
+        <button class="ansbtn" data-l="C">C</button>
+        <button class="ansbtn" data-l="D">D</button>
+      </div>
+      <div class="feedback" id="qFeedback">
+        <div class="fh" id="fbHead"></div>
+        <div id="fbExpl" style="font-size:.95rem; line-height:1.5"></div>
+        <div id="fbTags"></div>
+        <div class="center" style="margin-top:14px">
+          <button class="btn primary" id="nextBtn" onclick="nextQuestion()">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ RESULT ============ -->
+  <div id="scr-result" class="screen">
+    <div class="card center" style="padding:30px">
+      <div class="confetti" id="resEmoji"></div>
+      <div class="bigscore" id="resScore"></div>
+      <div class="muted" id="resSub"></div>
+      <div id="resXp" style="margin-top:10px; font-weight:700; color:var(--accent2)"></div>
+      <div id="resBadges"></div>
+    </div>
+    <div class="card" id="resTopics"></div>
+    <div class="center row" style="justify-content:center; padding-bottom:30px">
+      <button class="btn primary" onclick="showSetup('quiz')">Play again</button>
+      <button class="btn" onclick="renderHome();go('home')">Home</button>
+    </div>
+  </div>
+
+  <!-- ============ LEADERBOARD ============ -->
+  <div id="scr-board" class="screen">
+    <a class="back" onclick="go('home')">← home</a>
+    <h1 style="margin:10px 0 16px">🏆 Leaderboard</h1>
+    <div class="card" id="boardTable">Loading…</div>
+  </div>
+
+  <!-- ============ PROGRESS ============ -->
+  <div id="scr-progress" class="screen">
+    <a class="back" onclick="go('home')">← home</a>
+    <h1 style="margin:10px 0 16px">📈 My Progress</h1>
+    <div class="card"><h2>Score history</h2><canvas id="progChart" height="120"></canvas><p class="muted" id="progNone" style="display:none">Complete a quiz to see your progress here.</p></div>
+    <div class="card"><h2>Topic strength</h2><div id="progTopics"></div></div>
+    <div class="card"><h2>Weakest syllabus areas</h2><div id="progWeak"></div></div>
+    <div class="card"><h2>Badges</h2><div class="badgegrid" id="progBadges"></div></div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="store.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const TOPIC_COLORS = {'Operations':'var(--ops)','Marketing':'var(--mkt)','Finance':'var(--fin)','Human Resources':'var(--hr)'};
+let me = null;           // current student record
+let roster = [];
+let pendingName = null, pinMode = 'enter', firstPin = null;
+let quiz = null;         // active quiz state
+
+// ---------- boot ----------
+(async function boot(){
+  const cloud = Store.init();
+  if (!cloud) $('localBanner').style.display = 'block';
+  $('timerDesc').textContent = QUIZ_OPTIONS.secondsPerQuestion + 's per question';
+  roster = await Store.getRoster();
+  const removed = await Store.getRemoved();
+  roster = roster.filter(n => !removed.includes(n));
+  renderNames(roster);
+  const saved = sessionStorage.getItem('hscq_login');
+  if (saved) {
+    const s = await Store.getStudent(saved);
+    if (s) { me = s; renderHome(); go('home'); }
+  }
+})();
+
+function go(name){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('scr-' + name).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ---------- login ----------
+function renderNames(list){
+  $('nameGrid').innerHTML = list.map(n => `<button class="namebtn" onclick="pickName(${JSON.stringify(n).replace(/"/g,'&quot;')})">${n}</button>`).join('') || '<p class="muted">No students yet — the teacher adds names in config.js or the dashboard.</p>';
+}
+$('nameSearch').addEventListener('input', e => {
+  const q = e.target.value.toLowerCase();
+  renderNames(roster.filter(n => n.toLowerCase().includes(q)));
+});
+async function pickName(name){
+  pendingName = name;
+  const existing = await Store.getStudent(name);
+  if (existing && existing.pin) {
+    pinMode = 'enter';
+    $('pinTitle').textContent = 'Hi ' + name.split(' ')[0] + '! Enter your PIN';
+    $('pinSub').textContent = '';
+  } else {
+    pinMode = 'create';
+    firstPin = null;
+    $('pinTitle').textContent = 'Welcome ' + name.split(' ')[0] + '! Create a 4-digit PIN';
+    $('pinSub').textContent = "You'll use this PIN every time you log in — pick something you'll remember.";
+  }
+  $('pinErr').style.display = 'none';
+  $('loginStep1').style.display = 'none';
+  $('loginStep2').style.display = 'block';
+  clearPins();
+}
+function backToNames(){ $('loginStep2').style.display='none'; $('loginStep1').style.display='block'; }
+const pinBoxes = [...document.querySelectorAll('.pinbox')];
+function clearPins(){ pinBoxes.forEach(b => b.value=''); pinBoxes[0].focus(); }
+pinBoxes.forEach((box,i) => {
+  box.addEventListener('input', () => {
+    box.value = box.value.replace(/\D/g,'');
+    if (box.value && i < 3) pinBoxes[i+1].focus();
+    if (pinBoxes.every(b => b.value)) submitPin();
+  });
+  box.addEventListener('keydown', e => { if (e.key==='Backspace' && !box.value && i>0) pinBoxes[i-1].focus(); });
+});
+async function submitPin(){
+  const pin = pinBoxes.map(b => b.value).join('');
+  if (pin.length !== 4) return;
+  if (pinMode === 'create') {
+    if (!firstPin) {
+      firstPin = pin;
+      $('pinTitle').textContent = 'Type it once more to confirm';
+      clearPins(); return;
+    }
+    if (pin !== firstPin) {
+      firstPin = null;
+      $('pinTitle').textContent = "They didn't match — create a 4-digit PIN";
+      clearPins(); return;
+    }
+    let s = await Store.getStudent(pendingName) || Store.blankStudent(pendingName);
+    s.pin = pinHash(pin);
+    await Store.saveStudent(pendingName, s);
+    me = s;
+  } else {
+    const s = await Store.getStudent(pendingName);
+    if (!s || s.pin !== pinHash(pin)) { $('pinErr').style.display='block'; clearPins(); return; }
+    me = s;
+  }
+  sessionStorage.setItem('hscq_login', pendingName);
+  renderHome(); go('home');
+}
+function logout(){ me = null; sessionStorage.removeItem('hscq_login'); backToNames(); go('login'); }
+
+// ---------- home ----------
+function renderHome(){
+  const lv = levelFromXp(me.xp);
+  $('homeName').textContent = me.name;
+  $('homeLevel').textContent = 'Level ' + lv + ' · ' + levelName(lv);
+  $('homeXp').textContent = me.xp + ' XP';
+  $('xpLabel').textContent = 'Level ' + lv;
+  $('xpNext').textContent = levelProgress(me.xp) + ' / 300 XP to level ' + (lv+1);
+  $('xpFill').style.width = (levelProgress(me.xp)/300*100) + '%';
+  const t = me.totals;
+  const acc = t.answered ? Math.round(t.correct/t.answered*100) : 0;
+  $('homeStats').innerHTML =
+    stat(me.attempts.length,'Quizzes') + stat(t.answered,'Questions') +
+    stat(acc + '%','Accuracy') + stat(me.bestStreak,'Best streak') +
+    stat(me.badges.length + '/' + BADGES.length,'Badges');
+  $('mistakeCount').textContent = me.wrong.length ? me.wrong.length + ' questions to conquer' : 'Nothing to fix — nice!';
+}
+function stat(v,l){ return `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`; }
+
+// ---------- setup ----------
+let sel = { n: 10, topics: new Set(), subs: new Set(), mode: 'quiz' };
+const YEARS = [...new Set(QUESTIONS.map(q => q.year))].sort();
+function showSetup(mode){
+  sel.mode = mode;
+  $('setupTitle').textContent = 'Set up your quiz';
+  if (!$('yearFrom').options.length) {
+    YEARS.forEach(y => { $('yearFrom').add(new Option(y,y)); $('yearTo').add(new Option(y,y)); });
+    $('yearFrom').value = YEARS[0]; $('yearTo').value = YEARS[YEARS.length-1];
+    $('topicBtns').innerHTML = Object.keys(SYLLABUS).map(t =>
+      `<button class="btn topicbtn" data-t="${t}">${t}</button>`).join('');
+    document.querySelectorAll('.topicbtn').forEach(b => b.addEventListener('click', () => {
+      const t = b.dataset.t;
+      if (sel.topics.has(t)) { sel.topics.delete(t); b.classList.remove('sel'); }
+      else { sel.topics.add(t); b.classList.add('sel'); }
+      renderSubs(); updatePool();
+    }));
+    document.querySelectorAll('.preset').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('.preset').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel'); sel.n = +b.dataset.n; $('customN').value = '';
+    }));
+    $('customN').addEventListener('input', () => {
+      const v = Math.max(1, Math.min(280, +$('customN').value || 0));
+      if (v) { sel.n = v; document.querySelectorAll('.preset').forEach(x => x.classList.remove('sel')); }
+    });
+    $('yearFrom').addEventListener('change', updatePool);
+    $('yearTo').addEventListener('change', updatePool);
+  }
+  updatePool();
+  go('setup');
+}
+function renderSubs(){
+  if (!sel.topics.size) { $('subWrap').style.display='none'; sel.subs.clear(); return; }
+  $('subWrap').style.display = 'block';
+  let html = '';
+  for (const t of sel.topics) {
+    for (const s of SYLLABUS[t]) {
+      const key = t + '|' + s;
+      html += `<label class="opt"><input type="checkbox" data-k="${key}" ${sel.subs.has(key)?'checked':''} onchange="toggleSub(this)"> <span style="color:${TOPIC_COLORS[t]}">●</span> ${s} <span class="muted">(${t})</span></label>`;
+    }
+  }
+  $('subList').innerHTML = html;
+  // drop subs of deselected topics
+  [...sel.subs].forEach(k => { if (!sel.topics.has(k.split('|')[0])) sel.subs.delete(k); });
+}
+function toggleSub(cb){ cb.checked ? sel.subs.add(cb.dataset.k) : sel.subs.delete(cb.dataset.k); updatePool(); }
+function filteredPool(){
+  const yf = +$('yearFrom').value || YEARS[0], yt = +$('yearTo').value || YEARS[YEARS.length-1];
+  return QUESTIONS.filter(q => {
+    if (q.year < yf || q.year > yt) return false;
+    if (sel.topics.size && !sel.topics.has(q.topic)) return false;
+    if (sel.subs.size) {
+      const keys = q.subs.map(s => q.topic + '|' + s);
+      if (!keys.some(k => sel.subs.has(k))) return false;
+    }
+    return true;
+  });
+}
+function updatePool(){
+  const pool = filteredPool();
+  $('poolInfo').textContent = pool.length + ' questions match your filters';
+}
+
+// ---------- quiz engine ----------
+function smartPick(pool, n){
+  // prioritise unseen, then least-seen, then least-recently-seen; shuffle within groups
+  const rnd = () => Math.random() - .5;
+  const scored = pool.map(q => ({q,
+    seen: me.seen[q.id] || 0,
+    last: (me.lastSeen && me.lastSeen[q.id]) || 0,
+    r: Math.random()
+  }));
+  scored.sort((a,b) => a.seen - b.seen || a.last - b.last || a.r - b.r);
+  return scored.slice(0, n).map(x => x.q).sort(rnd);
+}
+function startQuiz(){
+  const pool = filteredPool();
+  if (!pool.length) { alert('No questions match those filters — widen them a little.'); return; }
+  const n = Math.min(sel.n, pool.length);
+  launchQuiz(smartPick(pool, n), 'quiz', $('timerOn').checked);
+}
+function startMistakes(){
+  if (!me.wrong.length) { alert("No mistakes to retry — you're all caught up! 🎉"); return; }
+  const pool = QUESTIONS.filter(q => me.wrong.includes(q.id));
+  const picked = smartPick(pool, Math.min(pool.length, 20));
+  launchQuiz(picked, 'mistakes', false);
+}
+function launchQuiz(questions, mode, timed){
+  quiz = { qs: questions, i: 0, correct: 0, streak: 0, bestStreak: 0, xp: 0,
+           mode, timed, t0: Date.now(),
+           topics: {}, subs: {}, answers: [] };
+  $('qStreak').style.display = 'none';
+  $('qTimer').style.display = timed ? 'inline-block' : 'none';
+  go('quiz');
+  showQuestion();
+}
+let tickHandle = null, timeLeft = 0;
+function showQuestion(){
+  const q = quiz.qs[quiz.i];
+  $('qCounter').textContent = (quiz.i+1) + ' / ' + quiz.qs.length;
+  $('qProgress').style.width = (quiz.i / quiz.qs.length * 100) + '%';
+  $('qMeta').textContent = q.year + ' HSC · Question ' + q.n;
+  $('qImg').src = q.img;
+  $('qFeedback').style.display = 'none';
+  $('qFeedback').className = 'feedback';
+  document.querySelectorAll('.ansbtn').forEach(b => { b.disabled = false; b.className = 'ansbtn'; });
+  if (quiz.timed) {
+    timeLeft = QUIZ_OPTIONS.secondsPerQuestion;
+    updateTimer();
+    clearInterval(tickHandle);
+    tickHandle = setInterval(() => {
+      timeLeft--;
+      updateTimer();
+      if (timeLeft <= 0) { clearInterval(tickHandle); answer(null); }
+    }, 1000);
+  }
+}
+function updateTimer(){
+  const t = $('qTimer');
+  t.textContent = '⏱ ' + timeLeft + 's';
+  t.classList.toggle('low', timeLeft <= 15);
+}
+document.querySelectorAll('.ansbtn').forEach(b => b.addEventListener('click', () => answer(b.dataset.l)));
+function answer(letter){
+  if (!quiz || $('qFeedback').style.display === 'block') return;
+  clearInterval(tickHandle);
+  const q = quiz.qs[quiz.i];
+  const right = letter !== null && q.ans.includes(letter);
+  document.querySelectorAll('.ansbtn').forEach(b => {
+    b.disabled = true;
+    if (b.dataset.l === letter) b.classList.add(right ? 'correct' : 'wrong');
+    else if (q.ans.includes(b.dataset.l)) b.classList.add('reveal');
+  });
+  // record
+  quiz.answers.push({id: q.id, right});
+  const tt = quiz.topics[q.topic] = quiz.topics[q.topic] || [0,0];
+  tt[1]++; if (right) tt[0]++;
+  for (const s of q.subs) {
+    const key = q.topic + '|' + s;
+    const ss = quiz.subs[key] = quiz.subs[key] || [0,0];
+    ss[1]++; if (right) ss[0]++;
+  }
+  let gained = 0;
+  if (right) {
+    quiz.correct++;
+    quiz.streak++;
+    quiz.bestStreak = Math.max(quiz.bestStreak, quiz.streak);
+    gained = QUIZ_OPTIONS.xpPerCorrect;
+    if (quiz.streak >= 10) gained += 15;
+    else if (quiz.streak >= 5) gained += 10;
+    else if (quiz.streak >= 3) gained += 5;
+    quiz.xp += gained;
+  } else {
+    quiz.streak = 0;
+  }
+  if (quiz.streak >= 3) {
+    $('qStreak').style.display = 'inline-block';
+    $('qStreak').textContent = '🔥 ' + quiz.streak + ' streak!';
+  } else $('qStreak').style.display = 'none';
+  // feedback panel
+  const fb = $('qFeedback');
+  fb.classList.add(right ? 'good' : 'bad');
+  const ansText = q.ans.join(' or ');
+  $('fbHead').textContent = letter === null ? "⏱ Time's up! Correct answer: " + ansText
+    : right ? '✅ Correct!' + (gained ? '  +' + gained + ' XP' : '')
+    : '❌ Not quite — the answer is ' + ansText;
+  $('fbExpl').textContent = q.expl;
+  $('fbTags').innerHTML = `<span class="tag" style="color:${TOPIC_COLORS[q.topic]}">${q.topic}</span>` +
+    q.subs.map(s => `<span class="tag">${s}</span>`).join('');
+  $('nextBtn').textContent = quiz.i === quiz.qs.length - 1 ? 'See results →' : 'Next →';
+  fb.style.display = 'block';
+  fb.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function nextQuestion(){
+  quiz.i++;
+  if (quiz.i >= quiz.qs.length) finishQuiz();
+  else showQuestion();
+}
+function quitQuiz(){
+  if (confirm('Quit this quiz? Progress on it will not be saved.')) { clearInterval(tickHandle); quiz = null; renderHome(); go('home'); }
+}
+async function finishQuiz(){
+  clearInterval(tickHandle);
+  const timeSec = Math.round((Date.now() - quiz.t0)/1000);
+  const attempt = {
+    d: Date.now(), n: quiz.qs.length, c: quiz.correct, timeSec,
+    timed: quiz.timed, mode: quiz.mode, topics: quiz.topics, subs: quiz.subs
+  };
+  // update student record
+  me.xp += quiz.xp;
+  me.bestStreak = Math.max(me.bestStreak, quiz.bestStreak);
+  me.attempts.push(attempt);
+  me.lastSeen = me.lastSeen || {};
+  for (const a of quiz.answers) {
+    me.seen[a.id] = (me.seen[a.id] || 0) + 1;
+    me.lastSeen[a.id] = Date.now();
+    if (a.right) me.wrong = me.wrong.filter(id => id !== a.id);
+    else if (!me.wrong.includes(a.id)) me.wrong.push(a.id);
+  }
+  const t = me.totals;
+  t.answered += attempt.n; t.correct += attempt.c;
+  for (const [topic, [c, tot]] of Object.entries(quiz.topics)) {
+    const p = t.perTopic[topic] = t.perTopic[topic] || [0,0];
+    p[0] += c; p[1] += tot;
+  }
+  for (const [key, [c, tot]] of Object.entries(quiz.subs)) {
+    const p = t.perSub[key] = t.perSub[key] || [0,0];
+    p[0] += c; p[1] += tot;
+  }
+  const newBadges = evaluateBadges(me, attempt, QUESTIONS.length);
+  await Store.saveStudent(me.name, me);
+  renderResult(attempt, newBadges);
+}
+function renderResult(attempt, newBadges){
+  const pct = Math.round(attempt.c / attempt.n * 100);
+  $('resEmoji').textContent = pct === 100 ? '🎉🏆🎉' : pct >= 80 ? '🎉' : pct >= 60 ? '💪' : pct >= 40 ? '📚' : '🌱';
+  $('resScore').textContent = attempt.c + ' / ' + attempt.n;
+  $('resSub').textContent = pct + '% · ' + fmtTime(attempt.timeSec) +
+    (quiz.bestStreak >= 3 ? ' · best streak ' + quiz.bestStreak + ' 🔥' : '');
+  $('resXp').textContent = quiz.xp ? '+' + quiz.xp + ' XP earned' : '';
+  $('resBadges').innerHTML = newBadges.map(b =>
+    `<div class="newbadge"><span style="font-size:1.6rem">${b.emoji}</span><div style="text-align:left"><b>Badge unlocked: ${b.name}</b><div class="muted">${b.desc}</div></div></div>`).join('');
+  let html = '<h2>Topic breakdown</h2>';
+  for (const [topic, [c, tot]] of Object.entries(attempt.topics)) {
+    const p = tot ? c/tot*100 : 0;
+    html += `<div class="topicrow"><span class="tl">${topic}</span><div class="tbar"><div style="width:${p}%; background:${TOPIC_COLORS[topic]}"></div></div><span class="muted" style="width:52px; text-align:right">${c}/${tot}</span></div>`;
+  }
+  $('resTopics').innerHTML = html;
+  quiz = null;
+  go('result');
+}
+function fmtTime(s){ return s >= 60 ? Math.floor(s/60) + 'm ' + (s%60) + 's' : s + 's'; }
+
+// ---------- leaderboard ----------
+async function showLeaderboard(){
+  go('board');
+  $('boardTable').innerHTML = 'Loading…';
+  const students = (await Store.getAllStudents()).filter(s => s.attempts.length);
+  students.sort((a,b) => b.xp - a.xp);
+  if (!students.length) { $('boardTable').innerHTML = '<p class="muted">No quizzes played yet — be the first!</p>'; return; }
+  let html = '<table><tr><th>#</th><th>Player</th><th>Level</th><th>XP</th><th>Accuracy</th><th>Quizzes</th></tr>';
+  students.forEach((s, i) => {
+    const acc = s.totals.answered ? Math.round(s.totals.correct/s.totals.answered*100) : 0;
+    const cls = i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
+    html += `<tr class="${s.name===me.name?'me':''}"><td class="${cls}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td><td>${s.name}</td><td>${levelFromXp(s.xp)} · ${levelName(levelFromXp(s.xp))}</td><td>${s.xp}</td><td>${acc}%</td><td>${s.attempts.length}</td></tr>`;
+  });
+  $('boardTable').innerHTML = html + '</table>';
+}
+
+// ---------- progress ----------
+let chart = null;
+function showProgress(){
+  go('progress');
+  const atts = me.attempts;
+  if (typeof Chart !== 'undefined' && atts.length) {
+    $('progNone').style.display = 'none';
+    if (chart) chart.destroy();
+    chart = new Chart($('progChart'), {
+      type: 'line',
+      data: { labels: atts.map((a,i) => 'Q' + (i+1)),
+        datasets: [{ label: 'Score %', data: atts.map(a => Math.round(a.c/a.n*100)),
+          borderColor: '#a29bfe', backgroundColor: 'rgba(108,92,231,.25)', fill: true, tension: .3 }]},
+      options: { scales: { y: { min: 0, max: 100, ticks:{color:'#9aa0c7'}, grid:{color:'#32386b'} },
+                           x: { ticks:{color:'#9aa0c7'}, grid:{display:false} } },
+                 plugins: { legend: { display: false } } }
+    });
+  } else { $('progNone').style.display = 'block'; }
+  // topic strength
+  let th = '';
+  for (const topic of Object.keys(SYLLABUS)) {
+    const p = me.totals.perTopic[topic] || [0,0];
+    const pct = p[1] ? Math.round(p[0]/p[1]*100) : 0;
+    th += `<div class="topicrow"><span class="tl">${topic}</span><div class="tbar"><div style="width:${pct}%; background:${TOPIC_COLORS[topic]}"></div></div><span class="muted" style="width:90px; text-align:right">${p[1] ? pct + '% (' + p[0] + '/' + p[1] + ')' : 'not yet'}</span></div>`;
+  }
+  $('progTopics').innerHTML = th;
+  // weakest subtopics
+  const subs = Object.entries(me.totals.perSub)
+    .filter(([,v]) => v[1] >= 3)
+    .map(([k,v]) => ({k, acc: v[0]/v[1], v}))
+    .sort((a,b) => a.acc - b.acc).slice(0,5);
+  $('progWeak').innerHTML = subs.length ? subs.map(s => {
+    const [topic, sub] = s.k.split('|');
+    return `<div class="topicrow"><span class="tl" style="width:230px">${sub} <span class="muted">(${topic})</span></span><div class="tbar"><div style="width:${s.acc*100}%; background:${s.acc<.5?'var(--bad)':s.acc<.75?'var(--gold)':'var(--good)'}"></div></div><span class="muted" style="width:52px; text-align:right">${s.v[0]}/${s.v[1]}</span></div>`;
+  }).join('') : '<p class="muted">Answer a few more questions to reveal your weak spots.</p>';
+  // badges
+  $('progBadges').innerHTML = BADGES.map(b =>
+    `<div class="badge ${me.badges.includes(b.id)?'on':''}"><div class="be">${b.emoji}</div><div class="bn">${b.name}</div><div class="bd">${b.desc}</div></div>`).join('');
+}
+</script>
+</body>
+</html>
