@@ -7,8 +7,21 @@
 //    Students pick their name and set their own PIN on first login.
 const CLASS_LIST = [
   "Demo Student",
-  // "Oscar",
-  // "Add your students here...",
+  "Oscar",
+  "Toby",
+  "Eamon",
+  "Lucy",
+  "Matty",
+  "Matt",
+  "Ben",
+  "Lachlan",
+  "Elyse",
+  "Ruby",
+  "Hayden",
+  "Flynn",
+  "Henry",
+  "Luka",
+  "Billy",
 ];
 
 // 2. FIREBASE — paste your config here (see SETUP.md, ~10 minutes).
