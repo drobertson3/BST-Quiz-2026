@@ -84,10 +84,46 @@ const Store = (() => {
     return lsGet('hscq_removed', []);
   }
 
+  // ---- classes ----
+  // Single source of truth: meta/roster.classes = { "Student Name": "DRO", ... }
+  async function getClassMap(){
+    if (cloud) {
+      const doc = await db.collection('meta').doc('roster').get();
+      return doc.exists ? (doc.data().classes || {}) : {};
+    }
+    return lsGet('hscq_classes', {});
+  }
+  async function setStudentClass(name, cls){
+    if (cloud) {
+      await db.collection('meta').doc('roster').set({classes: {[name]: cls || null}}, {merge:true});
+    } else {
+      const m = lsGet('hscq_classes', {});
+      if (cls) m[name] = cls; else delete m[name];
+      lsSet('hscq_classes', m);
+    }
+    // mirror onto the student record so the game can show it without a second read
+    try {
+      const s = await getStudent(name);
+      if (s) { s.class = cls || null; await saveStudent(name, s); }
+    } catch(e){}
+  }
+  async function setClassesBulk(map){
+    if (cloud) await db.collection('meta').doc('roster').set({classes: map}, {merge:true});
+    else { const m = {...lsGet('hscq_classes', {}), ...map}; lsSet('hscq_classes', m); }
+  }
+  function classList(){
+    return (typeof CLASSES !== 'undefined' && CLASSES.length) ? CLASSES : ['DRO','DJK'];
+  }
+
   // ---- students ----
   function blankStudent(name){
     return {
-      name, pin: null, xp: 0, badges: [],
+      name, pin: null, class: null, xp: 0, badges: [],
+      daily: null,       // {date, c, n, timeSec, streak, best, done}
+      survival: null,    // {best, runs, totalCorrect}
+      exams: [],         // {d, c, n, timeSec, pct}
+      duels: {w:0, l:0, d:0},
+      peer: {count:0, exact:0, totalDiff:0, xp:0},   // peer marking record
       seen: {},          // qid -> times seen
       lastSeen: {},      // qid -> timestamp
       wrong: [],         // qids currently answered wrong (cleared when later answered right)
@@ -130,9 +166,275 @@ const Store = (() => {
     return Object.values(all);
   }
 
+  // ---- short-answer responses ----
+  // {id, student, cls, qid, label, topic, subs[], max, typed, submitted,
+  //  ai:{mark,feedback,strengths,improvements} | null,   <- teacher-only suggestion
+  //  status:'pending'|'marked', mark, feedback, markedAt,
+  //  peers:{ "<slug>": {mark, d, xp} }}
+  async function createResponse(r){
+    const id = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+    const doc = {...r, id, status: 'pending', mark: null, feedback: '', markedAt: null, peers: {}};
+    if (cloud) await db.collection('responses').doc(id).set(doc);
+    else { const all = lsGet('hscq_responses', {}); all[id] = doc; lsSet('hscq_responses', all); }
+    return doc;
+  }
+  async function getAllResponses(){
+    if (cloud) { const snap = await db.collection('responses').get(); return snap.docs.map(d => d.data()); }
+    return Object.values(lsGet('hscq_responses', {}));
+  }
+  async function getResponsesFor(name){
+    const all = await getAllResponses();
+    return all.filter(r => r.student === name).sort((a,b) => b.submitted - a.submitted);
+  }
+  // Responses this student may peer-mark: teacher-marked, not their own, not already marked by them.
+  async function getPeerMarkable(name){
+    const key = slugify(name);
+    const all = await getAllResponses();
+    return all.filter(r => r.status === 'marked' && r.student !== name && !(r.peers || {})[key]);
+  }
+  async function setResponseAI(id, ai){
+    if (cloud) { await db.collection('responses').doc(id).set({ai}, {merge:true}); return; }
+    const all = lsGet('hscq_responses', {});
+    if (all[id]) { all[id].ai = ai; lsSet('hscq_responses', all); }
+  }
+  async function setResponseMark(id, mark, feedback){
+    const patch = {mark, feedback: feedback || '', status: 'marked', markedAt: Date.now()};
+    if (cloud) { await db.collection('responses').doc(id).set(patch, {merge:true}); }
+    else { const all = lsGet('hscq_responses', {}); if (all[id]) { Object.assign(all[id], patch); lsSet('hscq_responses', all); } }
+  }
+  // Send a marked response back to the queue so the teacher can change the mark.
+  async function reopenResponse(id){
+    if (cloud) { await db.collection('responses').doc(id).set({status: 'pending'}, {merge:true}); return; }
+    const all = lsGet('hscq_responses', {});
+    if (all[id]) { all[id].status = 'pending'; lsSet('hscq_responses', all); }
+  }
+  async function addPeerMark(id, name, mark, xp){
+    const key = slugify(name);
+    const entry = {mark, d: Date.now(), xp};
+    if (cloud) await db.collection('responses').doc(id).set({peers: {[key]: entry}}, {merge:true});
+    else {
+      const all = lsGet('hscq_responses', {});
+      if (all[id]) { all[id].peers = all[id].peers || {}; all[id].peers[key] = entry; lsSet('hscq_responses', all); }
+    }
+  }
+  async function deleteResponse(id){
+    if (cloud) { await db.collection('responses').doc(id).delete(); return; }
+    const all = lsGet('hscq_responses', {}); delete all[id]; lsSet('hscq_responses', all);
+  }
+
+  // ---- duels ----
+  // {id, from, to, qids, res:{ "<slug>": {c,n,timeSec,d} }, created}
+  async function createDuel(from, to, qids){
+    const id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+    const duel = {id, from, to, qids, res:{}, created: Date.now()};
+    if (cloud) await db.collection('duels').doc(id).set(duel);
+    else { const all = lsGet('hscq_duels', {}); all[id] = duel; lsSet('hscq_duels', all); }
+    return duel;
+  }
+  async function getDuelsFor(name){
+    if (cloud) {
+      const [a, b] = await Promise.all([
+        db.collection('duels').where('from','==',name).get(),
+        db.collection('duels').where('to','==',name).get()
+      ]);
+      const seen = {};
+      [...a.docs, ...b.docs].forEach(d => { seen[d.id] = d.data(); });
+      return Object.values(seen).sort((x,y) => y.created - x.created);
+    }
+    return Object.values(lsGet('hscq_duels', {}))
+      .filter(d => d.from === name || d.to === name)
+      .sort((x,y) => y.created - x.created);
+  }
+  async function saveDuelResult(id, name, result){
+    const key = slugify(name);
+    if (cloud) {
+      await db.collection('duels').doc(id).set({res: {[key]: result}}, {merge:true});
+      const doc = await db.collection('duels').doc(id).get();
+      return doc.exists ? doc.data() : null;
+    }
+    const all = lsGet('hscq_duels', {});
+    if (!all[id]) return null;
+    all[id].res = all[id].res || {};
+    all[id].res[key] = result;
+    lsSet('hscq_duels', all);
+    return all[id];
+  }
+  async function deleteDuel(id){
+    if (cloud) { await db.collection('duels').doc(id).delete(); return; }
+    const all = lsGet('hscq_duels', {}); delete all[id]; lsSet('hscq_duels', all);
+  }
+  async function getAllDuels(){
+    if (cloud) { const snap = await db.collection('duels').get(); return snap.docs.map(d => d.data()); }
+    return Object.values(lsGet('hscq_duels', {}));
+  }
+
   return { init, isCloud: () => cloud, getRoster, saveRoster, removeFromRoster, getRemoved,
-           blankStudent, getStudent, saveStudent, deleteStudent, getAllStudents };
+           getClassMap, setStudentClass, setClassesBulk, classList,
+           blankStudent, getStudent, saveStudent, deleteStudent, getAllStudents,
+           createDuel, getDuelsFor, saveDuelResult, deleteDuel, getAllDuels, slug: slugify,
+           createResponse, getAllResponses, getResponsesFor, getPeerMarkable,
+           setResponseAI, setResponseMark, reopenResponse, addPeerMark, deleteResponse };
 })();
+
+// ---- short answer & peer marking maths ----
+// XP a student earns just for submitting an answer for marking (the rest lands when the teacher marks it).
+const SA_SUBMIT_XP = 15;
+// Peer marking reward: the closer to the teacher's mark, the better.
+function peerXp(peerMark, teacherMark){
+  const diff = Math.abs(peerMark - teacherMark);
+  return diff === 0 ? 30 : diff === 1 ? 15 : diff === 2 ? 5 : 0;
+}
+function peerVerdict(diff){
+  return diff === 0 ? {label:'Spot on — exactly what the teacher gave', color:'var(--good)', emoji:'🎯'}
+       : diff === 1 ? {label:'Very close — one mark out',               color:'var(--good)', emoji:'👏'}
+       : diff === 2 ? {label:'Not far off — two marks out',             color:'var(--gold)', emoji:'🤏'}
+       : {label:diff + ' marks out — re-read the criteria',             color:'var(--bad)',  emoji:'📚'};
+}
+// Marks a student has earned that count as "answering" work (peer marking is excluded).
+function answeringAttempts(student){
+  return (student.attempts || []).filter(a => a.mode !== 'peermark');
+}
+
+function ensureSA(s){
+  s.sa = s.sa || { count: 0, marks: 0, marksTotal: 0, perTopic: {}, perSub: {}, seen: {}, lastSeen: {}, submitted: 0 };
+  if (s.sa.submitted === undefined) s.sa.submitted = s.sa.count || 0;
+  return s.sa;
+}
+
+function saXpFor(mark, max){
+  const xpPerMark = (typeof QUIZ_OPTIONS !== 'undefined' ? QUIZ_OPTIONS.xpPerMark : 10) || 10;
+  return mark * xpPerMark + (mark === max && max >= 2 ? 5 : 0);
+}
+
+// Credit a teacher-approved mark to the student's record. Called from the dashboard
+// on approval — the only place short-answer marks enter a student's totals.
+// Safe to call again if the teacher re-marks: the second call applies the difference
+// rather than double-counting.
+function applyTeacherMark(student, resp, mark, totalQuestions){
+  student.saCredited = student.saCredited || {};
+  // migrate the old array form, if present
+  if (Array.isArray(student.saCredited)) {
+    student.saCredited = Object.fromEntries(student.saCredited.map(id => [id, null]));
+  }
+  const max = resp.max;
+  const had = student.saCredited[resp.id];          // previously credited mark, if any
+  const isRemark = had !== undefined && had !== null;
+  const delta = isRemark ? mark - had : mark;
+  const xpDelta = isRemark ? saXpFor(mark, max) - saXpFor(had, max) : saXpFor(mark, max);
+
+  const sa = ensureSA(student);
+  student.xp += xpDelta;
+  sa.marks += delta;
+  if (!isRemark) {
+    sa.count++;
+    sa.marksTotal += max;
+    sa.seen[resp.qid] = (sa.seen[resp.qid] || 0) + 1;
+    sa.lastSeen[resp.qid] = Date.now();
+  }
+  const pt = sa.perTopic[resp.topic] = sa.perTopic[resp.topic] || [0,0];
+  pt[0] += delta; if (!isRemark) pt[1] += max;
+  for (const s of (resp.subs || [])) {
+    const key = resp.topic + '|' + s;
+    const ps = sa.perSub[key] = sa.perSub[key] || [0,0];
+    ps[0] += delta; if (!isRemark) ps[1] += max;
+  }
+
+  const topics = { [resp.topic]: [mark, max] };
+  const subs = {};
+  for (const s of (resp.subs || [])) subs[resp.topic + '|' + s] = [mark, max];
+
+  let attempt;
+  if (isRemark) {
+    attempt = (student.attempts || []).find(a => a.responseId === resp.id);
+    if (attempt) { attempt.c = mark; attempt.topics = topics; attempt.subs = subs;
+                   attempt.qs = [{id: resp.qid, mark, max}]; attempt.d = Date.now(); }
+  }
+  if (!attempt) {
+    attempt = { d: Date.now(), n: max, c: mark, timeSec: 0, timed: false,
+                mode: 'shortanswer', qcount: 1, responseId: resp.id,
+                topics, subs, qs: [{id: resp.qid, mark, max}] };
+    student.attempts.push(attempt);
+  }
+
+  student.saCredited[resp.id] = mark;
+  const badges = evaluateBadges(student, attempt, totalQuestions || 0);
+  return {badges, xpDelta, attempt, isRemark};
+}
+
+// ---- seeded randomness (identical picks for every student) ----
+function seedFrom(str){
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+// Deterministic sample of n items — same seed always yields the same list, in the same order.
+function seededPick(pool, n, seedStr){
+  const rnd = mulberry32(seedFrom(seedStr));
+  const arr = pool.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, Math.min(n, arr.length));
+}
+function dateKey(d){
+  const t = d ? new Date(d) : new Date();
+  return t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0');
+}
+
+// ---- mode maths ----
+// Survival: sudden death, reward deepens with the run. 10,10,12,12,14,14… capped at 50.
+function survivalXp(index){
+  const base = (typeof QUIZ_OPTIONS !== 'undefined' ? QUIZ_OPTIONS.xpPerCorrect : 10);
+  return Math.min(base + Math.floor(index / 2) * 2, 50);
+}
+// Exam Simulation: indicative HSC band from a Section I percentage.
+function bandFromPct(pct){
+  if (pct >= 90) return {band:'Band 6', desc:'Outstanding', color:'var(--good)'};
+  if (pct >= 80) return {band:'Band 5', desc:'High',        color:'var(--good)'};
+  if (pct >= 70) return {band:'Band 4', desc:'Sound+',      color:'var(--gold)'};
+  if (pct >= 60) return {band:'Band 3', desc:'Sound',       color:'var(--gold)'};
+  if (pct >= 50) return {band:'Band 2', desc:'Basic',       color:'var(--bad)'};
+  return {band:'Band 1', desc:'Elementary', color:'var(--bad)'};
+}
+// Duel: compare two results — more correct wins, ties broken by the faster time.
+function duelOutcome(mine, theirs){
+  if (!mine || !theirs) return 'pending';
+  if (mine.c !== theirs.c) return mine.c > theirs.c ? 'win' : 'loss';
+  if (mine.timeSec !== theirs.timeSec) return mine.timeSec < theirs.timeSec ? 'win' : 'loss';
+  return 'draw';
+}
+
+// ---- class competition maths ----
+// Returns one row per class: { cls, students, active, totalXp, avgXp, answered, correct, accuracy }
+function classStandings(students, classMap, classes){
+  const rows = classes.map(cls => ({cls, students:0, active:0, totalXp:0, avgXp:0, answered:0, correct:0, accuracy:null}));
+  const byCls = Object.fromEntries(rows.map(r => [r.cls, r]));
+  for (const s of students) {
+    const cls = (classMap && classMap[s.name]) || s.class;
+    const r = byCls[cls];
+    if (!r) continue;
+    r.students++;
+    r.totalXp += (s.xp || 0);
+    r.answered += (s.totals?.answered || 0);
+    r.correct  += (s.totals?.correct  || 0);
+    if (s.attempts && s.attempts.length) r.active++;
+  }
+  for (const r of rows) {
+    r.avgXp = r.active ? Math.round(r.totalXp / r.active) : 0;
+    r.accuracy = r.answered ? r.correct / r.answered : null;
+  }
+  return rows;
+}
 
 // ---- shared game maths ----
 function levelFromXp(xp){ return Math.floor(xp / 300) + 1; }
@@ -166,6 +468,28 @@ const BADGES = [
   {id:'high_flyer',  emoji:'🚀', name:'High Flyer',    desc:'Reach Level 5'},
   {id:'early_bird',  emoji:'🐦', name:'Early Bird',    desc:'Finish a quiz before 8 am'},
   {id:'night_owl',   emoji:'🦉', name:'Night Owl',     desc:'Finish a quiz after 9 pm'},
+  {id:'sa_first',    emoji:'📝', name:'Pen to Paper',  desc:'Complete your first short-answer session'},
+  {id:'sa_perfect',  emoji:'✒️', name:'Top Band',      desc:'Full marks on a 4+ mark short answer'},
+  {id:'sa_20',       emoji:'🖋️', name:'Wordsmith',     desc:'Have 20 short answers marked'},
+  // --- game modes ---
+  {id:'daily_first', emoji:'📆', name:'Day One',       desc:'Complete your first Daily Challenge'},
+  {id:'daily_perfect',emoji:'🌞', name:'Flawless Daily',desc:'Get 5/5 on a Daily Challenge'},
+  {id:'daily_streak5',emoji:'🗓️', name:'Regular',      desc:'Daily Challenge 5 days in a row'},
+  {id:'daily_streak15',emoji:'🏅',name:'Iron Habit',   desc:'Daily Challenge 15 days in a row'},
+  {id:'surv_10',     emoji:'🛡️', name:'Survivor',      desc:'Reach 10 in a row in Survival'},
+  {id:'surv_20',     emoji:'⚔️', name:'Gladiator',     desc:'Reach 20 in a row in Survival'},
+  {id:'surv_30',     emoji:'🐉', name:'Immortal',      desc:'Reach 30 in a row in Survival'},
+  {id:'exam_first',  emoji:'📄', name:'Sat the Paper', desc:'Complete an Exam Simulation'},
+  {id:'exam_band5',  emoji:'🎓', name:'Band 5 Standard',desc:'Score 80%+ in an Exam Simulation'},
+  {id:'exam_band6',  emoji:'🏆', name:'Band 6 Standard',desc:'Score 90%+ in an Exam Simulation'},
+  {id:'duel_first',  emoji:'🤝', name:'Challenger',    desc:'Finish your first duel'},
+  {id:'duel_win',    emoji:'🥊', name:'Duellist',      desc:'Win a duel'},
+  {id:'duel_5',      emoji:'👑', name:'Champion',      desc:'Win 5 duels'},
+  {id:'peer_first',  emoji:'⚖️', name:'Fair Judge',    desc:'Mark your first peer answer'},
+  {id:'peer_exact',  emoji:'🎯', name:'Marker\'s Eye', desc:'Match the teacher\'s mark exactly'},
+  {id:'peer_10',     emoji:'📋', name:'Marking Centre',desc:'Peer mark 10 answers'},
+  {id:'peer_sharp',  emoji:'🔍', name:'Chief Examiner',desc:'Match the teacher exactly 5 times'},
+  {id:'sa_submitted',emoji:'📮', name:'Handed In',     desc:'Submit a short answer for marking'},
 ];
 
 function evaluateBadges(student, attempt, totalQuestions){
@@ -175,8 +499,9 @@ function evaluateBadges(student, attempt, totalQuestions){
   const topicAcc = (topic) => {
     const p = t.perTopic[topic]; return p && p[1] >= 25 ? p[0]/p[1] : 0;
   };
+  const answering = answeringAttempts(student);   // peer marking isn't "doing a quiz"
   const checks = {
-    first_steps: () => student.attempts.length >= 1,
+    first_steps: () => answering.length >= 1,
     full_section: () => attempt && attempt.n >= 20,
     sharpshooter: () => attempt && attempt.n >= 10 && attempt.c === attempt.n,
     streak_5:  () => student.bestStreak >= 5,
@@ -190,8 +515,8 @@ function evaluateBadges(student, attempt, totalQuestions){
     comeback:  () => attempt && attempt.mode === 'mistakes' && attempt.n > 0 && attempt.c / attempt.n >= 0.8,
     pacer:     () => attempt && attempt.timed && attempt.n > 0 && (attempt.timeSec / attempt.n) < 60,
     streak_15: () => student.bestStreak >= 15,
-    dedication:() => student.attempts.length >= 10,
-    veteran:   () => student.attempts.length >= 25,
+    dedication:() => answering.length >= 10,
+    veteran:   () => answering.length >= 25,
     double_cent:() => t.answered >= 200,
     all_rounder:() => ['Operations','Marketing','Finance','Human Resources']
                       .every(tp => t.perTopic[tp] && t.perTopic[tp][1] >= 10),
@@ -200,6 +525,27 @@ function evaluateBadges(student, attempt, totalQuestions){
     high_flyer:() => levelFromXp(student.xp) >= 5,
     early_bird:() => attempt && new Date(attempt.d).getHours() < 8,
     night_owl: () => attempt && new Date(attempt.d).getHours() >= 21,
+    sa_first:  () => attempt && attempt.mode === 'shortanswer',
+    sa_perfect:() => attempt && attempt.mode === 'shortanswer' && (attempt.qs || []).some(x => x.max >= 4 && x.mark === x.max),
+    sa_20:     () => student.sa && student.sa.count >= 20,
+    daily_first:  () => !!(student.daily && student.daily.done),
+    daily_perfect:() => attempt && attempt.mode === 'daily' && attempt.n > 0 && attempt.c === attempt.n,
+    daily_streak5:() => (student.daily?.streak || 0) >= 5,
+    daily_streak15:()=> (student.daily?.streak || 0) >= 15,
+    surv_10:   () => (student.survival?.best || 0) >= 10,
+    surv_20:   () => (student.survival?.best || 0) >= 20,
+    surv_30:   () => (student.survival?.best || 0) >= 30,
+    exam_first:() => attempt && attempt.mode === 'exam',
+    exam_band5:() => attempt && attempt.mode === 'exam' && attempt.n > 0 && attempt.c/attempt.n >= 0.8,
+    exam_band6:() => attempt && attempt.mode === 'exam' && attempt.n > 0 && attempt.c/attempt.n >= 0.9,
+    duel_first:() => ((student.duels?.w || 0) + (student.duels?.l || 0) + (student.duels?.d || 0)) >= 1,
+    duel_win:  () => (student.duels?.w || 0) >= 1,
+    duel_5:    () => (student.duels?.w || 0) >= 5,
+    peer_first:() => (student.peer?.count || 0) >= 1,
+    peer_exact:() => (student.peer?.exact || 0) >= 1,
+    peer_10:   () => (student.peer?.count || 0) >= 10,
+    peer_sharp:() => (student.peer?.exact || 0) >= 5,
+    sa_submitted:() => (student.sa?.submitted || 0) >= 1,
   };
   for (const b of BADGES) {
     if (!has(b.id) && checks[b.id] && checks[b.id]()) { student.badges.push(b.id); earned.push(b); }

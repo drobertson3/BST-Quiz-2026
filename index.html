@@ -97,6 +97,49 @@ tr.me{background:rgba(108,92,231,.15)}
 .subselect{max-height:180px; overflow-y:auto; border:1px solid var(--line); border-radius:10px; padding:10px; margin-top:8px}
 .center{text-align:center}
 a.back{color:var(--accent2); cursor:pointer; font-size:.9rem; text-decoration:none}
+/* ---- short answer mode ---- */
+.markchip{background:var(--gold); color:#3d2f00; font-weight:800; border-radius:999px; padding:4px 12px; font-size:.85rem}
+.scanzone{border:2px dashed var(--line); border-radius:14px; padding:20px; text-align:center}
+.scanzone img{max-width:100%; max-height:360px; border-radius:10px}
+.spinner{width:44px; height:44px; border:4px solid var(--card2); border-top-color:var(--accent2); border-radius:50%; margin:0 auto 14px; animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.bigmark{font-size:2.8rem; font-weight:900; text-align:center}
+details.rev{background:var(--bg2); border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin-top:10px}
+details.rev summary{cursor:pointer; font-weight:600; color:var(--accent2)}
+details.rev pre{white-space:pre-wrap; font-family:inherit; font-size:.88rem; color:var(--ink2); margin-top:8px; line-height:1.5}
+.fbl{margin:6px 0 0; padding-left:20px; font-size:.92rem; line-height:1.5}
+textarea{background:var(--bg2); border:1px solid var(--line); color:var(--ink); border-radius:10px; padding:12px; font-size:1rem; width:100%; min-height:140px; font-family:inherit}
+textarea:focus{outline:2px solid var(--accent)}
+.selfmarks{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:12px}
+.sarow{display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:.92rem}
+.steps{font-size:.95rem; line-height:1.7; color:var(--ink2)}
+.steps b{color:var(--ink)}
+/* ---- exam simulation ---- */
+.ansbtn.sel{border-color:var(--accent); background:rgba(108,92,231,.22); color:var(--ink)}
+.palette{display:grid; grid-template-columns:repeat(auto-fit,minmax(44px,1fr)); gap:8px}
+.pcell{border:1px solid var(--line); background:var(--bg2); color:var(--ink2); border-radius:8px; padding:10px 0; font-weight:700; cursor:pointer; font-size:.85rem}
+.pcell.done{background:var(--accent); border-color:var(--accent); color:#fff}
+.pcell.cur{outline:2px solid var(--accent2)}
+.pauseveil{display:none; position:fixed; inset:0; background:rgba(10,12,30,.92); z-index:50; align-items:center; justify-content:center; padding:20px}
+.pauseveil.on{display:flex}
+.revq{border-bottom:1px solid var(--line); padding:14px 0}
+.revq img{max-width:100%; border-radius:8px; margin:8px 0}
+.revq .verdict{font-weight:800; margin-bottom:4px}
+/* ---- survival / daily / duels ---- */
+.lives{font-size:1.1rem; letter-spacing:2px}
+.duelrow{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); font-size:.92rem; flex-wrap:wrap}
+.pill{display:inline-block; border-radius:99px; padding:2px 10px; font-size:.74rem; font-weight:800}
+.pill.win{background:rgba(46,213,115,.18); color:var(--good)}
+.pill.loss{background:rgba(227,77,104,.18); color:var(--bad)}
+.pill.draw{background:var(--bg2); color:var(--ink2)}
+.pill.wait{background:rgba(255,193,7,.18); color:var(--gold)}
+.bigstat{font-size:2.6rem; font-weight:900; text-align:center; color:var(--accent2)}
+/* ---- short answer / peer marking ---- */
+.answerbox{background:var(--bg2); border:1px solid var(--line); border-radius:10px; padding:14px; font-size:.95rem; line-height:1.6; white-space:pre-wrap; max-height:420px; overflow-y:auto}
+.sarowb{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
+.sarowb .lbl{font-weight:600; font-size:.92rem}
+.awaiting{background:rgba(255,193,7,.14); color:var(--gold); border-radius:99px; padding:3px 12px; font-size:.75rem; font-weight:800}
+.markedpill{background:rgba(46,213,115,.16); color:var(--good); border-radius:99px; padding:3px 12px; font-size:.75rem; font-weight:800}
 </style>
 </head>
 <body>
@@ -147,8 +190,15 @@ a.back{color:var(--accent2); cursor:pointer; font-size:.9rem; text-decoration:no
     </div>
     <div class="card"><div class="statgrid" id="homeStats"></div></div>
     <div class="menu">
-      <button class="menubtn" onclick="showSetup('quiz')"><div class="e">🚀</div><div class="t">Start Quiz</div><div class="d">Random past HSC questions</div></button>
+      <button class="menubtn" onclick="showSetup('quiz')"><div class="e">🚀</div><div class="t">Multiple Choice Quiz</div><div class="d">Random past HSC questions</div></button>
+      <button class="menubtn" onclick="showSetupSA()"><div class="e">✍️</div><div class="t">Short Answer Quiz</div><div class="d" id="saDesc">Write answers for your teacher to mark</div></button>
+      <button class="menubtn" onclick="showPeer()"><div class="e">⚖️</div><div class="t">Peer Marking</div><div class="d" id="peerDesc">Mark a classmate's answer</div></button>
+      <button class="menubtn" onclick="showMyAnswers()"><div class="e">📮</div><div class="t">My Answers</div><div class="d" id="myAnsDesc">Marks & feedback on your writing</div></button>
       <button class="menubtn" onclick="startMistakes()"><div class="e">🔁</div><div class="t">My Mistakes</div><div class="d" id="mistakeCount">Retry questions you got wrong</div></button>
+      <button class="menubtn" onclick="showDaily()"><div class="e">📆</div><div class="t">Daily Challenge</div><div class="d" id="dailyDesc">5 questions · same for everyone</div></button>
+      <button class="menubtn" onclick="showSurvival()"><div class="e">💀</div><div class="t">Survival</div><div class="d" id="survDesc">One wrong answer ends the run</div></button>
+      <button class="menubtn" onclick="showExam()"><div class="e">📄</div><div class="t">Exam Simulation</div><div class="d">20 questions · 20 minutes</div></button>
+      <button class="menubtn" onclick="showDuels()"><div class="e">🥊</div><div class="t">Duels</div><div class="d" id="duelDesc">Challenge a classmate</div></button>
       <button class="menubtn" onclick="showLeaderboard()"><div class="e">🏆</div><div class="t">Leaderboard</div><div class="d">Class rankings</div></button>
       <button class="menubtn" onclick="showProgress()"><div class="e">📈</div><div class="t">My Progress</div><div class="d">Scores, topics & badges</div></button>
     </div>
@@ -207,7 +257,7 @@ a.back{color:var(--accent2); cursor:pointer; font-size:.9rem; text-decoration:no
     <div class="card" style="padding:14px">
       <div class="muted" id="qMeta"></div>
       <div class="qimgbox"><img id="qImg" alt="HSC question"></div>
-      <div class="ansgrid">
+      <div class="ansgrid" id="qAns">
         <button class="ansbtn" data-l="A">A</button>
         <button class="ansbtn" data-l="B">B</button>
         <button class="ansbtn" data-l="C">C</button>
@@ -240,11 +290,129 @@ a.back{color:var(--accent2); cursor:pointer; font-size:.9rem; text-decoration:no
     </div>
   </div>
 
+  <!-- ============ DAILY CHALLENGE ============ -->
+  <div id="scr-daily" class="screen">
+    <a class="back" onclick="go('home')">← home</a>
+    <h1 style="margin:10px 0 4px">📆 Daily Challenge</h1>
+    <p class="muted" style="margin-bottom:16px">Five questions. The same five for everyone, every day. One attempt only — make it count.</p>
+    <div class="card" id="dailyCard"></div>
+    <div class="card"><h2>Today's board</h2><div id="dailyBoard">Loading…</div></div>
+  </div>
+
+  <!-- ============ SURVIVAL ============ -->
+  <div id="scr-survival" class="screen">
+    <a class="back" onclick="go('home')">← home</a>
+    <h1 style="margin:10px 0 4px">💀 Survival</h1>
+    <p class="muted" style="margin-bottom:16px">Sudden death. One wrong answer and the run is over — but XP climbs the deeper you go.</p>
+    <div class="card" id="survCard"></div>
+    <div class="card"><h2>Longest runs</h2><div id="survBoard">Loading…</div></div>
+  </div>
+
+  <!-- ============ DUELS ============ -->
+  <div id="scr-duels" class="screen">
+    <a class="back" onclick="go('home')">← home</a>
+    <h1 style="margin:10px 0 4px">🥊 Duels</h1>
+    <p class="muted" style="margin-bottom:16px">Challenge anyone. You both get the same 10 questions and can play whenever — the result settles once you've both finished.</p>
+    <div class="card" id="duelRecord"></div>
+    <div class="card">
+      <h2>New challenge</h2>
+      <input type="text" id="duelSearch" placeholder="Search for an opponent..." style="margin-bottom:12px">
+      <div class="namegrid" id="duelNames"></div>
+    </div>
+    <div class="card"><h2>Your duels</h2><div id="duelList">Loading…</div></div>
+  </div>
+
+  <!-- ============ EXAM SIMULATION ============ -->
+  <div id="scr-examintro" class="screen">
+    <a class="back" onclick="go('home')">← home</a>
+    <h1 style="margin:10px 0 4px">📄 Exam Simulation</h1>
+    <p class="muted" style="margin-bottom:16px">Section I under exam conditions.</p>
+    <div class="card">
+      <h2>How it works</h2>
+      <div class="steps">
+        <p><b>20 multiple-choice questions</b> in <b>20 minutes</b> — the real Section I pace.</p>
+        <p><b>No feedback as you go.</b> You'll see nothing until you submit, just like the real paper.</p>
+        <p><b>Move freely.</b> Skip a question and come back to it — the palette shows what's still blank.</p>
+        <p><b>Pause if you must.</b> The clock stops, but try to sit it in one go.</p>
+        <p>At the end: your mark, an indicative band, a topic breakdown and a full worked review.</p>
+      </div>
+    </div>
+    <div class="card" id="examHistory"></div>
+    <div class="center" style="padding:6px 0 30px">
+      <button class="btn primary" style="font-size:1.15rem; padding:16px 44px" onclick="startExam()">Begin exam 📄</button>
+    </div>
+  </div>
+
+  <div id="scr-exam" class="screen">
+    <div class="quizhead" style="margin-bottom:12px">
+      <span class="chip" id="exCounter"></span>
+      <div class="pbar"><div id="exProgress"></div></div>
+      <span class="chip timer" id="exTimer"></span>
+      <button class="btn small ghost" onclick="pauseExam()" id="exPauseBtn">Pause</button>
+      <button class="btn small ghost" onclick="quitExam()">Quit</button>
+    </div>
+    <div class="card" style="padding:14px">
+      <div class="muted" id="exMeta"></div>
+      <div class="qimgbox"><img id="exImg" alt="HSC question"></div>
+      <div class="ansgrid" id="exAns">
+        <button class="ansbtn" data-l="A">A</button>
+        <button class="ansbtn" data-l="B">B</button>
+        <button class="ansbtn" data-l="C">C</button>
+        <button class="ansbtn" data-l="D">D</button>
+      </div>
+      <div class="row" style="justify-content:space-between; margin-top:14px">
+        <button class="btn" onclick="examNav(-1)">← Previous</button>
+        <button class="btn" onclick="clearExamAnswer()">Clear</button>
+        <button class="btn primary" onclick="examNav(1)">Next →</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Question palette</h2>
+      <div class="palette" id="exPalette"></div>
+      <div class="center" style="margin-top:16px">
+        <button class="btn primary" onclick="submitExam(false)">Submit paper</button>
+      </div>
+    </div>
+    <div class="pauseveil" id="exPauseVeil">
+      <div class="card center" style="max-width:340px">
+        <div style="font-size:2.4rem">⏸️</div>
+        <h2 style="margin:8px 0">Paused</h2>
+        <p class="muted" style="margin-bottom:16px">The clock is stopped. Questions are hidden.</p>
+        <button class="btn primary" onclick="resumeExam()">Resume</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scr-examresult" class="screen">
+    <div class="card center" style="padding:30px">
+      <div class="confetti" id="exResEmoji"></div>
+      <div class="bigscore" id="exResScore"></div>
+      <div class="muted" id="exResSub"></div>
+      <div id="exResBand" style="margin-top:12px; font-size:1.3rem; font-weight:800"></div>
+      <p class="muted" style="margin-top:6px; font-size:.8rem">Indicative only — based on Section I multiple choice alone.</p>
+      <div id="exResXp" style="margin-top:10px; font-weight:700; color:var(--accent2)"></div>
+      <div id="exResBadges"></div>
+    </div>
+    <div class="card" id="exResTopics"></div>
+    <div class="card"><h2>Full review</h2><div id="exResReview"></div></div>
+    <div class="center row" style="justify-content:center; padding-bottom:30px">
+      <button class="btn primary" onclick="showExam()">Sit another</button>
+      <button class="btn" onclick="renderHome();go('home')">Home</button>
+    </div>
+  </div>
+
   <!-- ============ LEADERBOARD ============ -->
   <div id="scr-board" class="screen">
     <a class="back" onclick="go('home')">← home</a>
     <h1 style="margin:10px 0 16px">🏆 Leaderboard</h1>
-    <div class="card" id="boardTable">Loading…</div>
+    <div class="card" id="classBattle" style="display:none">
+      <h2>⚔️ Class Battle</h2>
+      <div id="classBattleBody"></div>
+    </div>
+    <div class="card">
+      <div class="row" id="boardFilter" style="margin-bottom:12px"></div>
+      <div id="boardTable">Loading…</div>
+    </div>
   </div>
 
   <!-- ============ PROGRESS ============ -->
@@ -252,14 +420,222 @@ a.back{color:var(--accent2); cursor:pointer; font-size:.9rem; text-decoration:no
     <a class="back" onclick="go('home')">← home</a>
     <h1 style="margin:10px 0 16px">📈 My Progress</h1>
     <div class="card"><h2>Score history</h2><canvas id="progChart" height="120"></canvas><p class="muted" id="progNone" style="display:none">Complete a quiz to see your progress here.</p></div>
-    <div class="card"><h2>Topic strength</h2><div id="progTopics"></div></div>
+    <div class="card"><h2>Topic strength <span class="muted" style="font-weight:400">(multiple choice)</span></h2><div id="progTopics"></div></div>
+    <div class="card" id="progSACard" style="display:none"><h2>Short answer marks by topic</h2><div id="progSA"></div></div>
     <div class="card"><h2>Weakest syllabus areas</h2><div id="progWeak"></div></div>
     <div class="card"><h2>Badges</h2><div class="badgegrid" id="progBadges"></div></div>
+  </div>
+
+  <!-- ============ SHORT ANSWER SETUP ============ -->
+  <div id="scr-sasetup" class="screen">
+    <a class="back" onclick="go('home')">← home</a>
+    <h1 style="margin:10px 0 4px">✍️ Short Answer Quiz</h1>
+    <p class="muted" style="margin-bottom:16px">Real Section II questions. Write your answer, hand it in, and your teacher marks it against the official NESA criteria.</p>
+    <div class="card">
+      <h2>How many questions?</h2>
+      <div class="row" id="saPresets">
+        <button class="btn preset sel" data-n="1">1</button>
+        <button class="btn preset" data-n="2">2</button>
+        <button class="btn preset" data-n="3">3</button>
+        <button class="btn preset" data-n="5">5</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Topics <span class="muted" style="font-weight:400">(leave all off for fully random)</span></h2>
+      <div class="row" id="saTopicBtns"></div>
+    </div>
+    <div class="card">
+      <div class="grid2">
+        <div>
+          <h2>Question size</h2>
+          <div class="row" id="saMarksBtns">
+            <button class="btn topicbtn sel" data-m="any">Any</button>
+            <button class="btn topicbtn" data-m="short">1–3 marks</button>
+            <button class="btn topicbtn" data-m="mid">4 marks</button>
+            <button class="btn topicbtn" data-m="long">5–6 marks</button>
+          </div>
+        </div>
+        <div>
+          <h2>Years</h2>
+          <div class="row">
+            <select id="saYearFrom"></select><span class="muted">to</span><select id="saYearTo"></select>
+          </div>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:10px" id="saPoolInfo"></p>
+    </div>
+    <div class="center" style="padding:6px 0 30px">
+      <button class="btn primary" style="font-size:1.15rem; padding:16px 44px" onclick="startSA()">Start! ✍️</button>
+    </div>
+  </div>
+
+  <!-- ============ SHORT ANSWER QUESTION ============ -->
+  <div id="scr-sa" class="screen">
+    <div class="quizhead" style="margin-bottom:12px">
+      <span class="chip" id="saCounter"></span>
+      <div class="pbar"><div id="saProgress"></div></div>
+      <span class="chip" id="saMarksSoFar" style="display:none"></span>
+      <button class="btn small ghost" onclick="quitSA()">Quit</button>
+    </div>
+    <div class="card" style="padding:14px">
+      <div class="row" style="justify-content:space-between">
+        <div class="muted" id="saMeta"></div>
+        <span class="markchip" id="saMarkChip"></span>
+      </div>
+      <div class="qimgbox"><img id="saImg" alt="HSC short-answer question"></div>
+
+      <!-- step 1: write -->
+      <div id="saStepWrite">
+        <p class="steps">Write your answer the way you would in the exam — then type it up below and hand it in. <b>Your teacher marks it</b> and you'll see the mark and feedback once they have.</p>
+        <textarea id="saTyped" placeholder="Type your answer here..." style="margin-top:12px"></textarea>
+        <div class="row" style="justify-content:space-between; margin-top:8px">
+          <span class="muted" id="saWordCount">0 words</span>
+          <span class="muted" id="saGuide"></span>
+        </div>
+        <div class="center" style="margin-top:12px">
+          <button class="btn primary" onclick="saSubmitTyped()">Hand in for marking ✓</button>
+        </div>
+        <details class="rev" style="margin-top:14px"><summary>Stuck? Show what the question is asking for</summary>
+          <pre id="saHintVerb"></pre></details>
+      </div>
+
+      <!-- step 2: submitting -->
+      <div id="saStepMarking" style="display:none; text-align:center; padding:26px 0">
+        <div class="spinner"></div>
+        <div style="font-weight:700">Handing in your answer…</div>
+        <div class="muted" style="margin-top:4px">Sending it to your teacher's marking queue</div>
+      </div>
+
+      <!-- step 3: handed in -->
+      <div id="saStepResult" style="display:none">
+        <div class="feedback good" style="display:block">
+          <div class="bigmark">📮</div>
+          <div class="fh center">Handed in</div>
+          <div class="center" id="saFbXp" style="color:var(--accent2); font-weight:700; margin:8px 0"></div>
+          <div class="center muted" id="saFbText" style="font-size:.95rem; line-height:1.55"></div>
+          <div id="saFbReveals" style="margin-top:12px"></div>
+          <div class="center" style="margin-top:14px">
+            <button class="btn primary" id="saNextBtn" onclick="saNext()">Next →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- submit error -->
+      <div id="saStepError" style="display:none">
+        <div class="feedback bad" style="display:block">
+          <div class="fh">⚠️ Couldn't hand that in</div>
+          <div id="saErrText" style="font-size:.95rem"></div>
+          <div class="center" style="margin-top:14px">
+            <button class="btn" onclick="saShowStep('saStepWrite')">← Back to my answer</button>
+            <button class="btn primary" onclick="saSubmitTyped()">Try again</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SHORT ANSWER RESULT ============ -->
+  <div id="scr-saresult" class="screen">
+    <div class="card center" style="padding:30px">
+      <div class="confetti" id="saResEmoji"></div>
+      <div class="bigscore" id="saResScore"></div>
+      <div class="muted" id="saResSub"></div>
+      <div id="saResXp" style="margin-top:10px; font-weight:700; color:var(--accent2)"></div>
+      <div id="saResBadges"></div>
+    </div>
+    <div class="card" id="saResList"></div>
+    <div class="center row" style="justify-content:center; padding-bottom:30px">
+      <button class="btn primary" onclick="showSetupSA()">Write more</button>
+      <button class="btn" onclick="showMyAnswers()">My answers</button>
+      <button class="btn" onclick="renderHome();go('home')">Home</button>
+    </div>
+  </div>
+
+  <!-- ============ MY SHORT ANSWERS ============ -->
+  <div id="scr-myanswers" class="screen">
+    <a class="back" onclick="go('home')">← home</a>
+    <h1 style="margin:10px 0 4px">📮 My short answers</h1>
+    <p class="muted" style="margin-bottom:16px">Everything you've handed in. Marks appear here once your teacher has marked them.</p>
+    <div class="card" id="myAnswersBody">Loading…</div>
+  </div>
+
+  <!-- ============ PEER MARKING ============ -->
+  <div id="scr-peerintro" class="screen">
+    <a class="back" onclick="go('home')">← home</a>
+    <h1 style="margin:10px 0 4px">⚖️ Peer Marking</h1>
+    <p class="muted" style="margin-bottom:16px">Mark a classmate's answer against the official NESA criteria. The closer you get to your teacher's mark, the more XP you earn.</p>
+    <div class="card" id="peerStats"></div>
+    <div class="card">
+      <h2>How the XP works</h2>
+      <div class="steps">
+        <p><b>🎯 Exactly right — 30 XP.</b> You gave the same mark as the teacher.</p>
+        <p><b>👏 One mark out — 15 XP.</b></p>
+        <p><b>🤏 Two marks out — 5 XP.</b></p>
+        <p>Answers are anonymous, and you'll never be given your own work.</p>
+      </div>
+    </div>
+    <div class="center" style="padding:6px 0 30px">
+      <button class="btn primary" style="font-size:1.15rem; padding:16px 44px" onclick="startPeer()" id="peerStartBtn">Start marking ⚖️</button>
+    </div>
+  </div>
+
+  <div id="scr-peer" class="screen">
+    <div class="quizhead" style="margin-bottom:12px">
+      <span class="chip" id="peerCounter"></span>
+      <div class="pbar"><div id="peerProgress"></div></div>
+      <span class="chip" id="peerXpChip" style="display:none"></span>
+      <button class="btn small ghost" onclick="quitPeer()">Quit</button>
+    </div>
+    <div class="card" style="padding:14px">
+      <div class="row" style="justify-content:space-between">
+        <div class="muted" id="peerMeta"></div>
+        <span class="markchip" id="peerMarkChip"></span>
+      </div>
+      <div class="qimgbox"><img id="peerImg" alt="HSC short-answer question"></div>
+
+      <div id="peerStepMark">
+        <h2 style="margin-top:14px">A classmate's answer</h2>
+        <div class="answerbox" id="peerAnswer"></div>
+        <details class="rev" open style="margin-top:12px"><summary>Official NESA marking criteria</summary><pre id="peerCriteria"></pre></details>
+        <details class="rev"><summary>Sample answer</summary><pre id="peerSample"></pre></details>
+        <p style="margin-top:14px; font-weight:600; text-align:center">What mark would you give it?</p>
+        <div class="selfmarks" id="peerMarkBtns"></div>
+      </div>
+
+      <div id="peerStepResult" style="display:none">
+        <div class="feedback" id="peerFb" style="display:block">
+          <div class="bigmark" id="peerFbMark"></div>
+          <div class="center" id="peerFbVerdict" style="font-weight:700; margin-bottom:6px"></div>
+          <div class="center" id="peerFbXp" style="color:var(--accent2); font-weight:700; margin-bottom:10px"></div>
+          <div id="peerFbTeacher" style="font-size:.95rem; line-height:1.55"></div>
+          <div id="peerFbReveals"></div>
+          <div class="center" style="margin-top:14px">
+            <button class="btn primary" id="peerNextBtn" onclick="peerNext()">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="scr-peerresult" class="screen">
+    <div class="card center" style="padding:30px">
+      <div class="confetti" id="peerResEmoji"></div>
+      <div class="bigscore" id="peerResScore"></div>
+      <div class="muted" id="peerResSub"></div>
+      <div id="peerResXp" style="margin-top:10px; font-weight:700; color:var(--accent2)"></div>
+      <div id="peerResBadges"></div>
+    </div>
+    <div class="card" id="peerResList"></div>
+    <div class="center row" style="justify-content:center; padding-bottom:30px">
+      <button class="btn primary" onclick="showPeer()">Mark more</button>
+      <button class="btn" onclick="renderHome();go('home')">Home</button>
+    </div>
   </div>
 </div>
 
 <script src="config.js"></script>
 <script src="data.js"></script>
+<script src="data-sa.js"></script>
 <script src="store.js"></script>
 <script>
 "use strict";
@@ -276,6 +652,7 @@ let quiz = null;         // active quiz state
   if (!cloud) $('localBanner').style.display = 'block';
   $('timerDesc').textContent = QUIZ_OPTIONS.secondsPerQuestion + 's per question';
   roster = await Store.getRoster();
+  boardClassMap = await Store.getClassMap();
   const removed = await Store.getRemoved();
   roster = roster.filter(n => !removed.includes(n));
   renderNames(roster);
@@ -361,7 +738,8 @@ function logout(){ me = null; sessionStorage.removeItem('hscq_login'); backToNam
 function renderHome(){
   const lv = levelFromXp(me.xp);
   $('homeName').textContent = me.name;
-  $('homeLevel').textContent = 'Level ' + lv + ' · ' + levelName(lv);
+  const myCls = classOf(me);
+  $('homeLevel').textContent = (myCls ? myCls + ' · ' : '') + 'Level ' + lv + ' · ' + levelName(lv);
   $('homeXp').textContent = me.xp + ' XP';
   $('xpLabel').textContent = 'Level ' + lv;
   $('xpNext').textContent = levelProgress(me.xp) + ' / 300 XP to level ' + (lv+1);
@@ -371,8 +749,51 @@ function renderHome(){
   $('homeStats').innerHTML =
     stat(me.attempts.length,'Quizzes') + stat(t.answered,'Questions') +
     stat(acc + '%','Accuracy') + stat(me.bestStreak,'Best streak') +
+    (me.sa && me.sa.marksTotal ? stat(Math.round(me.sa.marks/me.sa.marksTotal*100) + '%','SA marks') : '') +
     stat(me.badges.length + '/' + BADGES.length,'Badges');
   $('mistakeCount').textContent = me.wrong.length ? me.wrong.length + ' questions to conquer' : 'Nothing to fix — nice!';
+
+  const d = me.daily;
+  $('dailyDesc').textContent = dailyDone()
+    ? 'Done today ' + d.c + '/' + d.n + ' · 🔥 ' + d.streak + ' day streak'
+    : (d && d.streak && d.date === dateKey(Date.now()-86400000))
+      ? 'Ready — keep your ' + d.streak + ' day streak alive!'
+      : '5 questions · same for everyone';
+  const sv = me.survival;
+  $('survDesc').textContent = sv && sv.best ? 'Best run: ' + sv.best + ' in a row' : 'One wrong answer ends the run';
+  const pr = me.peer;
+  $('peerDesc').textContent = pr && pr.count ? pr.exact + ' spot on out of ' + pr.count + ' marked' : "Mark a classmate's answer";
+  refreshDuelBadge();
+  refreshAnswerBadge();
+}
+
+// surface newly-marked work and anything still with the teacher
+async function refreshAnswerBadge(){
+  try {
+    const list = await Store.getResponsesFor(me.name);
+    if (!list.length) { $('myAnsDesc').textContent = 'Nothing handed in yet'; return; }
+    const pending = list.filter(r => r.status !== 'marked').length;
+    const marked  = list.filter(r => r.status === 'marked');
+    const unseen  = marked.filter(r => !(me.saSeen || []).includes(r.id)).length;
+    $('myAnsDesc').textContent = unseen ? '🟢 ' + unseen + ' newly marked!'
+      : pending ? pending + ' awaiting your teacher'
+      : marked.length + ' marked';
+    const pool = await Store.getPeerMarkable(me.name);
+    if (pool.length) $('peerDesc').textContent = pool.length + ' answer' + (pool.length===1?'':'s') + ' ready to mark';
+  } catch(e){}
+}
+
+// how many duels are waiting on this student to play
+async function refreshDuelBadge(){
+  try {
+    const duels = await Store.getDuelsFor(me.name);
+    const mine = Store.slug(me.name);
+    const yourTurn = duels.filter(x => !x.res[mine]).length;
+    const settled  = duels.filter(x => x.res[mine] && Object.keys(x.res).length > 1).length;
+    $('duelDesc').textContent = yourTurn
+      ? '🔴 ' + yourTurn + ' duel' + (yourTurn===1?'':'s') + ' waiting on you'
+      : settled ? 'Record: ' + (me.duels?.w||0) + 'W–' + (me.duels?.l||0) + 'L' : 'Challenge a classmate';
+  } catch(e){}
 }
 function stat(v,l){ return `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`; }
 
@@ -463,10 +884,10 @@ function startMistakes(){
   const picked = smartPick(pool, Math.min(pool.length, 20));
   launchQuiz(picked, 'mistakes', false);
 }
-function launchQuiz(questions, mode, timed){
-  quiz = { qs: questions, i: 0, correct: 0, streak: 0, bestStreak: 0, xp: 0,
-           mode, timed, t0: Date.now(),
-           topics: {}, subs: {}, answers: [] };
+function launchQuiz(questions, mode, timed, extra){
+  quiz = { qs: questions, i: 0, correct: 0, streak: 0, bestStreak: 0, xp: 0, bonus: 0,
+           mode, timed, t0: Date.now(), dead: false,
+           topics: {}, subs: {}, answers: [], ...(extra || {}) };
   $('qStreak').style.display = 'none';
   $('qTimer').style.display = timed ? 'inline-block' : 'none';
   go('quiz');
@@ -475,13 +896,14 @@ function launchQuiz(questions, mode, timed){
 let tickHandle = null, timeLeft = 0;
 function showQuestion(){
   const q = quiz.qs[quiz.i];
-  $('qCounter').textContent = (quiz.i+1) + ' / ' + quiz.qs.length;
-  $('qProgress').style.width = (quiz.i / quiz.qs.length * 100) + '%';
+  const surv = quiz.mode === 'survival';
+  $('qCounter').textContent = surv ? '💀 ' + (quiz.i+1) : (quiz.i+1) + ' / ' + quiz.qs.length;
+  $('qProgress').style.width = (surv ? Math.min(quiz.i * 4, 100) : quiz.i / quiz.qs.length * 100) + '%';
   $('qMeta').textContent = q.year + ' HSC · Question ' + q.n;
   $('qImg').src = q.img;
   $('qFeedback').style.display = 'none';
   $('qFeedback').className = 'feedback';
-  document.querySelectorAll('.ansbtn').forEach(b => { b.disabled = false; b.className = 'ansbtn'; });
+  document.querySelectorAll('#qAns .ansbtn').forEach(b => { b.disabled = false; b.className = 'ansbtn'; });
   if (quiz.timed) {
     timeLeft = QUIZ_OPTIONS.secondsPerQuestion;
     updateTimer();
@@ -498,13 +920,13 @@ function updateTimer(){
   t.textContent = '⏱ ' + timeLeft + 's';
   t.classList.toggle('low', timeLeft <= 15);
 }
-document.querySelectorAll('.ansbtn').forEach(b => b.addEventListener('click', () => answer(b.dataset.l)));
+document.querySelectorAll('#qAns .ansbtn').forEach(b => b.addEventListener('click', () => answer(b.dataset.l)));
 function answer(letter){
   if (!quiz || $('qFeedback').style.display === 'block') return;
   clearInterval(tickHandle);
   const q = quiz.qs[quiz.i];
   const right = letter !== null && q.ans.includes(letter);
-  document.querySelectorAll('.ansbtn').forEach(b => {
+  document.querySelectorAll('#qAns .ansbtn').forEach(b => {
     b.disabled = true;
     if (b.dataset.l === letter) b.classList.add(right ? 'correct' : 'wrong');
     else if (q.ans.includes(b.dataset.l)) b.classList.add('reveal');
@@ -520,16 +942,22 @@ function answer(letter){
   }
   let gained = 0;
   if (right) {
-    quiz.correct++;
     quiz.streak++;
     quiz.bestStreak = Math.max(quiz.bestStreak, quiz.streak);
-    gained = QUIZ_OPTIONS.xpPerCorrect;
-    if (quiz.streak >= 10) gained += 15;
-    else if (quiz.streak >= 5) gained += 10;
-    else if (quiz.streak >= 3) gained += 5;
+    if (quiz.mode === 'survival') {
+      // escalating reward — the deeper the run, the richer each answer
+      gained = survivalXp(quiz.correct);
+    } else {
+      gained = QUIZ_OPTIONS.xpPerCorrect;
+      if (quiz.streak >= 10) gained += 15;
+      else if (quiz.streak >= 5) gained += 10;
+      else if (quiz.streak >= 3) gained += 5;
+    }
+    quiz.correct++;
     quiz.xp += gained;
   } else {
     quiz.streak = 0;
+    if (quiz.mode === 'survival') quiz.dead = true;
   }
   if (quiz.streak >= 3) {
     $('qStreak').style.display = 'inline-block';
@@ -539,37 +967,38 @@ function answer(letter){
   const fb = $('qFeedback');
   fb.classList.add(right ? 'good' : 'bad');
   const ansText = q.ans.join(' or ');
-  $('fbHead').textContent = letter === null ? "⏱ Time's up! Correct answer: " + ansText
+  $('fbHead').textContent = quiz.dead ? '💀 Run over — the answer is ' + ansText
+    : letter === null ? "⏱ Time's up! Correct answer: " + ansText
     : right ? '✅ Correct!' + (gained ? '  +' + gained + ' XP' : '')
     : '❌ Not quite — the answer is ' + ansText;
   $('fbExpl').textContent = q.expl;
   $('fbTags').innerHTML = `<span class="tag" style="color:${TOPIC_COLORS[q.topic]}">${q.topic}</span>` +
     q.subs.map(s => `<span class="tag">${s}</span>`).join('');
-  $('nextBtn').textContent = quiz.i === quiz.qs.length - 1 ? 'See results →' : 'Next →';
+  $('nextBtn').textContent = (quiz.dead || quiz.i === quiz.qs.length - 1) ? 'See results →' : 'Next →';
   fb.style.display = 'block';
   fb.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 function nextQuestion(){
+  if (quiz.dead) { finishQuiz(); return; }
   quiz.i++;
   if (quiz.i >= quiz.qs.length) finishQuiz();
   else showQuestion();
 }
 function quitQuiz(){
-  if (confirm('Quit this quiz? Progress on it will not be saved.')) { clearInterval(tickHandle); quiz = null; renderHome(); go('home'); }
+  const msg = quiz && quiz.mode === 'daily'
+    ? 'Quit the Daily Challenge? You only get one attempt — quitting forfeits it for today.'
+    : 'Quit this quiz? Progress on it will not be saved.';
+  if (confirm(msg)) { clearInterval(tickHandle); quiz = null; renderHome(); go('home'); }
 }
-async function finishQuiz(){
-  clearInterval(tickHandle);
-  const timeSec = Math.round((Date.now() - quiz.t0)/1000);
-  const attempt = {
-    d: Date.now(), n: quiz.qs.length, c: quiz.correct, timeSec,
-    timed: quiz.timed, mode: quiz.mode, topics: quiz.topics, subs: quiz.subs
-  };
-  // update student record
-  me.xp += quiz.xp;
-  me.bestStreak = Math.max(me.bestStreak, quiz.bestStreak);
+
+// Single place where a finished set of answers is written to the student record.
+// Every mode routes through here, so XP, accuracy, topic and subtopic totals stay consistent.
+function commitAttempt(attempt, answers, xpGain, bestStreak){
+  me.xp += xpGain;
+  me.bestStreak = Math.max(me.bestStreak, bestStreak || 0);
   me.attempts.push(attempt);
   me.lastSeen = me.lastSeen || {};
-  for (const a of quiz.answers) {
+  for (const a of answers) {
     me.seen[a.id] = (me.seen[a.id] || 0) + 1;
     me.lastSeen[a.id] = Date.now();
     if (a.right) me.wrong = me.wrong.filter(id => id !== a.id);
@@ -577,25 +1006,100 @@ async function finishQuiz(){
   }
   const t = me.totals;
   t.answered += attempt.n; t.correct += attempt.c;
-  for (const [topic, [c, tot]] of Object.entries(quiz.topics)) {
+  for (const [topic, [c, tot]] of Object.entries(attempt.topics)) {
     const p = t.perTopic[topic] = t.perTopic[topic] || [0,0];
     p[0] += c; p[1] += tot;
   }
-  for (const [key, [c, tot]] of Object.entries(quiz.subs)) {
+  for (const [key, [c, tot]] of Object.entries(attempt.subs)) {
     const p = t.perSub[key] = t.perSub[key] || [0,0];
     p[0] += c; p[1] += tot;
   }
-  const newBadges = evaluateBadges(me, attempt, QUESTIONS.length);
-  await Store.saveStudent(me.name, me);
-  renderResult(attempt, newBadges);
+  return evaluateBadges(me, attempt, QUESTIONS.length);
 }
-function renderResult(attempt, newBadges){
-  const pct = Math.round(attempt.c / attempt.n * 100);
-  $('resEmoji').textContent = pct === 100 ? '🎉🏆🎉' : pct >= 80 ? '🎉' : pct >= 60 ? '💪' : pct >= 40 ? '📚' : '🌱';
-  $('resScore').textContent = attempt.c + ' / ' + attempt.n;
-  $('resSub').textContent = pct + '% · ' + fmtTime(attempt.timeSec) +
-    (quiz.bestStreak >= 3 ? ' · best streak ' + quiz.bestStreak + ' 🔥' : '');
-  $('resXp').textContent = quiz.xp ? '+' + quiz.xp + ' XP earned' : '';
+
+async function finishQuiz(){
+  clearInterval(tickHandle);
+  const timeSec = Math.round((Date.now() - quiz.t0)/1000);
+  const attempt = {
+    d: Date.now(), n: quiz.answers.length, c: quiz.correct, timeSec,
+    timed: quiz.timed, mode: quiz.mode, topics: quiz.topics, subs: quiz.subs
+  };
+
+  // ---- mode-specific bookkeeping (runs before badges are evaluated) ----
+  if (quiz.mode === 'daily') {
+    const today = dateKey();
+    const prev = me.daily;
+    const yesterday = dateKey(Date.now() - 86400000);
+    const streak = (prev && prev.date === yesterday) ? (prev.streak || 0) + 1 : 1;
+    if (attempt.c === attempt.n) quiz.bonus += 50;                 // perfect run
+    quiz.bonus += Math.min(streak * 5, 50);                        // streak reward
+    me.daily = { date: today, c: attempt.c, n: attempt.n, timeSec, streak,
+                 best: Math.max(prev?.best || 0, attempt.c), done: true };
+  }
+  if (quiz.mode === 'survival') {
+    const s = me.survival || {best:0, runs:0, totalCorrect:0};
+    s.runs++; s.totalCorrect += quiz.correct;
+    s.best = Math.max(s.best, quiz.correct);
+    me.survival = s;
+    attempt.runLength = quiz.correct;
+  }
+  if (quiz.mode === 'duel') attempt.duelId = quiz.duelId;
+
+  quiz.xp += quiz.bonus;
+  const newBadges = commitAttempt(attempt, quiz.answers, quiz.xp, quiz.bestStreak);
+
+  // duels settle against the opponent's stored result
+  let duelInfo = null;
+  if (quiz.mode === 'duel') {
+    const duel = await Store.saveDuelResult(quiz.duelId, me.name,
+      {c: attempt.c, n: attempt.n, timeSec, d: Date.now()});
+    if (duel) {
+      const oppName = duel.from === me.name ? duel.to : duel.from;
+      const mine = duel.res[Store.slug(me.name)], theirs = duel.res[Store.slug(oppName)];
+      const outcome = duelOutcome(mine, theirs);
+      if (outcome !== 'pending' && !(me.duelsSettled || []).includes(duel.id)) {
+        me.duels = me.duels || {w:0,l:0,d:0};
+        if (outcome === 'win') me.duels.w++; else if (outcome === 'loss') me.duels.l++; else me.duels.d++;
+        me.duelsSettled = [...(me.duelsSettled || []), duel.id];
+        newBadges.push(...evaluateBadges(me, attempt, QUESTIONS.length));
+      }
+      duelInfo = {oppName, mine, theirs, outcome};
+    }
+  }
+
+  await Store.saveStudent(me.name, me);
+  renderResult(attempt, newBadges, duelInfo);
+}
+function renderResult(attempt, newBadges, duelInfo){
+  const pct = attempt.n ? Math.round(attempt.c / attempt.n * 100) : 0;
+  const mode = attempt.mode;
+
+  if (mode === 'survival') {
+    const best = me.survival.best;
+    const isPb = attempt.runLength >= best && attempt.runLength > 0;
+    $('resEmoji').textContent = isPb ? '🏆💀🏆' : attempt.runLength >= 10 ? '💀🔥' : '💀';
+    $('resScore').textContent = attempt.runLength + (attempt.runLength === 1 ? ' correct' : ' in a row');
+    $('resSub').textContent = (isPb ? '🎉 New personal best! · ' : 'Personal best: ' + best + ' · ') + fmtTime(attempt.timeSec);
+  } else if (mode === 'daily') {
+    $('resEmoji').textContent = pct === 100 ? '🌞🎉' : pct >= 60 ? '📆💪' : '📆';
+    $('resScore').textContent = attempt.c + ' / ' + attempt.n;
+    $('resSub').textContent = pct + '% · ' + fmtTime(attempt.timeSec) + ' · 🔥 ' + me.daily.streak + ' day streak';
+  } else if (mode === 'duel' && duelInfo) {
+    const {oppName, theirs, outcome} = duelInfo;
+    $('resEmoji').textContent = outcome === 'win' ? '🥊🏆' : outcome === 'loss' ? '🥊' : outcome === 'draw' ? '🤝' : '⏳';
+    $('resScore').textContent = attempt.c + ' / ' + attempt.n;
+    $('resSub').textContent = outcome === 'pending'
+      ? 'Waiting on ' + oppName + ' to play — you scored ' + attempt.c + '/' + attempt.n + ' in ' + fmtTime(attempt.timeSec)
+      : (outcome === 'win' ? '🏆 You beat ' : outcome === 'loss' ? 'Beaten by ' : 'Dead heat with ') + oppName +
+        ' — ' + attempt.c + '–' + theirs.c + ' (' + fmtTime(attempt.timeSec) + ' v ' + fmtTime(theirs.timeSec) + ')';
+  } else {
+    $('resEmoji').textContent = pct === 100 ? '🎉🏆🎉' : pct >= 80 ? '🎉' : pct >= 60 ? '💪' : pct >= 40 ? '📚' : '🌱';
+    $('resScore').textContent = attempt.c + ' / ' + attempt.n;
+    $('resSub').textContent = pct + '% · ' + fmtTime(attempt.timeSec) +
+      (quiz.bestStreak >= 3 ? ' · best streak ' + quiz.bestStreak + ' 🔥' : '');
+  }
+
+  $('resXp').textContent = quiz.xp ? '+' + quiz.xp + ' XP earned' + (quiz.bonus ? ' (includes +' + quiz.bonus + ' bonus)' : '') : '';
   $('resBadges').innerHTML = newBadges.map(b =>
     `<div class="newbadge"><span style="font-size:1.6rem">${b.emoji}</span><div style="text-align:left"><b>Badge unlocked: ${b.name}</b><div class="muted">${b.desc}</div></div></div>`).join('');
   let html = '<h2>Topic breakdown</h2>';
@@ -609,20 +1113,346 @@ function renderResult(attempt, newBadges){
 }
 function fmtTime(s){ return s >= 60 ? Math.floor(s/60) + 'm ' + (s%60) + 's' : s + 's'; }
 
+// ================= DAILY CHALLENGE =================
+function dailyQuestions(){ return seededPick(QUESTIONS, 5, 'daily-' + dateKey()); }
+function dailyDone(){ return !!(me.daily && me.daily.date === dateKey()); }
+
+async function showDaily(){
+  go('daily');
+  const d = me.daily;
+  const done = dailyDone();
+  const streak = (d && d.date === dateKey()) ? d.streak : (d && d.date === dateKey(Date.now()-86400000)) ? d.streak : 0;
+  $('dailyCard').innerHTML = done
+    ? `<div class="bigstat">${d.c} / ${d.n}</div>
+       <p class="center muted" style="margin-top:6px">Today's challenge is done — ${fmtTime(d.timeSec)} · 🔥 ${d.streak} day streak</p>
+       <p class="center muted" style="margin-top:10px">Come back tomorrow for five new questions.</p>`
+    : `<p class="center" style="font-size:1.05rem; margin-bottom:6px">Today's five are ready.</p>
+       <p class="center muted">${streak ? '🔥 You\'re on a ' + streak + ' day streak — keep it alive.' : 'Play today to start a streak.'}</p>
+       <p class="center muted" style="margin-top:8px; font-size:.82rem">Timed at ${QUIZ_OPTIONS.secondsPerQuestion}s a question. Perfect run: +50 XP bonus.</p>
+       <div class="center" style="margin-top:16px"><button class="btn primary" style="padding:14px 36px; font-size:1.05rem" onclick="startDaily()">Start today's challenge 📆</button></div>`;
+  renderDailyBoard();
+}
+
+async function renderDailyBoard(){
+  const today = dateKey();
+  const all = await Store.getAllStudents();
+  const rows = all.filter(s => s.daily && s.daily.date === today)
+    .sort((a,b) => b.daily.c - a.daily.c || a.daily.timeSec - b.daily.timeSec);
+  if (!rows.length) { $('dailyBoard').innerHTML = '<p class="muted">Nobody has played today yet — be first on the board.</p>'; return; }
+  $('dailyBoard').innerHTML = '<table><tr><th>#</th><th>Player</th><th>Class</th><th>Score</th><th>Time</th><th>Streak</th></tr>' +
+    rows.map((s,i) => `<tr class="${s.name===me.name?'me':''}"><td class="${i===0?'rank1':i===1?'rank2':i===2?'rank3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+      <td>${s.name}</td><td class="muted">${classOf(s) || '—'}</td><td><b>${s.daily.c}/${s.daily.n}</b></td>
+      <td>${fmtTime(s.daily.timeSec)}</td><td>🔥 ${s.daily.streak}</td></tr>`).join('') + '</table>';
+}
+
+function startDaily(){
+  if (dailyDone()) { alert("You've already played today's challenge — come back tomorrow!"); return; }
+  launchQuiz(dailyQuestions(), 'daily', true);
+}
+
+// ================= SURVIVAL =================
+async function showSurvival(){
+  go('survival');
+  const s = me.survival || {best:0, runs:0, totalCorrect:0};
+  $('survCard').innerHTML =
+    `<div class="bigstat">${s.best}</div>
+     <p class="center muted" style="margin-top:4px">your longest run${s.runs ? ' · ' + s.runs + ' run' + (s.runs===1?'':'s') + ' played' : ''}</p>
+     <p class="center muted" style="margin-top:12px; font-size:.86rem">XP per correct answer starts at ${survivalXp(0)} and climbs to ${survivalXp(100)} as you go deeper. One wrong answer ends it.</p>
+     <div class="center" style="margin-top:16px"><button class="btn primary" style="padding:14px 36px; font-size:1.05rem" onclick="startSurvival()">Start run 💀</button></div>`;
+  const all = await Store.getAllStudents();
+  const rows = all.filter(x => x.survival && x.survival.best > 0)
+    .sort((a,b) => b.survival.best - a.survival.best).slice(0,15);
+  $('survBoard').innerHTML = rows.length
+    ? '<table><tr><th>#</th><th>Player</th><th>Class</th><th>Best run</th><th>Runs</th></tr>' +
+      rows.map((x,i) => `<tr class="${x.name===me.name?'me':''}"><td class="${i===0?'rank1':i===1?'rank2':i===2?'rank3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+        <td>${x.name}</td><td class="muted">${classOf(x) || '—'}</td><td><b>${x.survival.best}</b></td><td>${x.survival.runs}</td></tr>`).join('') + '</table>'
+    : '<p class="muted">No runs yet — set the mark.</p>';
+}
+function startSurvival(){
+  const pool = smartPick(QUESTIONS, Math.min(QUESTIONS.length, 200));
+  if (!pool.length) { alert('No questions available.'); return; }
+  launchQuiz(pool, 'survival', false);
+}
+
+// ================= DUELS =================
+let myDuels = [];
+async function showDuels(){
+  go('duels');
+  const rec = me.duels || {w:0,l:0,d:0};
+  $('duelRecord').innerHTML = `<div class="row" style="justify-content:center; gap:26px">
+    <div class="center"><div class="bigstat" style="color:var(--good)">${rec.w}</div><div class="muted">won</div></div>
+    <div class="center"><div class="bigstat" style="color:var(--bad)">${rec.l}</div><div class="muted">lost</div></div>
+    <div class="center"><div class="bigstat" style="color:var(--ink2)">${rec.d}</div><div class="muted">drawn</div></div></div>`;
+  renderDuelNames('');
+  myDuels = await Store.getDuelsFor(me.name);
+  renderDuelList();
+}
+function renderDuelNames(q){
+  const opponents = roster.filter(n => n !== me.name && n.toLowerCase().includes(q));
+  $('duelNames').innerHTML = opponents.length
+    ? opponents.map(n => `<button class="namebtn" onclick="challenge(${JSON.stringify(n).replace(/"/g,'&quot;')})">${n}${classOf({name:n}) ? ' <span class="muted">· ' + classOf({name:n}) + '</span>' : ''}</button>`).join('')
+    : '<p class="muted">No one to challenge yet.</p>';
+}
+$('duelSearch').addEventListener('input', e => renderDuelNames(e.target.value.toLowerCase()));
+
+async function challenge(name){
+  const open = myDuels.find(d => !d.res[Store.slug(me.name)] &&
+    ((d.from === me.name && d.to === name) || (d.from === name && d.to === me.name)));
+  if (open) { alert('You already have an unplayed duel with ' + name + ' — play that one first.'); return; }
+  if (!confirm('Challenge ' + name + ' to a 10-question duel?')) return;
+  const duel = await Store.createDuel(me.name, name, []);
+  myDuels = await Store.getDuelsFor(me.name);
+  renderDuelList();
+  if (confirm('Challenge sent! Play your half now?')) playDuel(duel.id);
+}
+
+function duelQuestions(id){ return seededPick(QUESTIONS, 10, 'duel-' + id); }
+
+function playDuel(id){
+  const duel = myDuels.find(d => d.id === id);
+  if (!duel) return;
+  if (duel.res[Store.slug(me.name)]) { alert("You've already played this duel."); return; }
+  launchQuiz(duelQuestions(id), 'duel', false, {duelId: id});
+}
+
+function renderDuelList(){
+  if (!myDuels.length) { $('duelList').innerHTML = '<p class="muted">No duels yet — challenge someone above.</p>'; return; }
+  $('duelList').innerHTML = myDuels.map(d => {
+    const opp = d.from === me.name ? d.to : d.from;
+    const mine = d.res[Store.slug(me.name)], theirs = d.res[Store.slug(opp)];
+    const out = duelOutcome(mine, theirs);
+    let right, pill;
+    if (!mine) {
+      pill = `<span class="pill wait">your turn</span>`;
+      right = `<button class="btn small primary" onclick="playDuel('${d.id}')">Play</button>`;
+    } else if (!theirs) {
+      pill = `<span class="pill wait">waiting</span>`;
+      right = `<span class="muted">you scored ${mine.c}/${mine.n}</span>`;
+    } else {
+      pill = `<span class="pill ${out}">${out === 'win' ? 'won' : out === 'loss' ? 'lost' : 'draw'}</span>`;
+      right = `<span class="muted">${mine.c}–${theirs.c} · ${fmtTime(mine.timeSec)} v ${fmtTime(theirs.timeSec)}</span>`;
+    }
+    return `<div class="duelrow"><span><b>${opp}</b> ${classOf({name:opp}) ? '<span class="muted">· ' + classOf({name:opp}) + '</span>' : ''} ${pill}</span>${right}</div>`;
+  }).join('');
+}
+
+// ================= EXAM SIMULATION =================
+const EXAM_N = 20, EXAM_SECONDS = 20 * 60;
+let exam = null, examTick = null;
+
+function showExam(){
+  go('examintro');
+  const hist = (me.exams || []).slice().reverse().slice(0,5);
+  $('examHistory').innerHTML = hist.length
+    ? '<h2>Your papers</h2><table><tr><th>When</th><th>Mark</th><th>%</th><th>Band</th><th>Time</th></tr>' +
+      hist.map(e => {
+        const b = bandFromPct(e.pct);
+        return `<tr><td class="muted">${new Date(e.d).toLocaleDateString('en-AU',{day:'numeric',month:'short'})}</td>
+          <td><b>${e.c}/${e.n}</b></td><td>${e.pct}%</td><td style="color:${b.color}">${b.band}</td><td>${fmtTime(e.timeSec)}</td></tr>`;
+      }).join('') + '</table>'
+    : '<h2>Your papers</h2><p class="muted">No exams sat yet.</p>';
+}
+
+function startExam(){
+  const qs = smartPick(QUESTIONS, Math.min(EXAM_N, QUESTIONS.length));
+  if (qs.length < 5) { alert('Not enough questions for an exam.'); return; }
+  exam = { qs, i: 0, answers: new Array(qs.length).fill(null),
+           left: EXAM_SECONDS, t0: Date.now(), paused: false, elapsed: 0 };
+  $('exPauseVeil').classList.remove('on');
+  go('exam');
+  renderExamQ();
+  clearInterval(examTick);
+  examTick = setInterval(() => {
+    if (!exam) { clearInterval(examTick); return; }   // exam abandoned — stop the clock
+    if (exam.paused) return;
+    exam.left--; exam.elapsed++;
+    updateExamTimer();
+    if (exam.left <= 0) { clearInterval(examTick); submitExam(true); }
+  }, 1000);
+}
+function updateExamTimer(){
+  const m = Math.floor(Math.max(exam.left,0)/60), s = Math.max(exam.left,0)%60;
+  const t = $('exTimer');
+  t.textContent = '⏱ ' + m + ':' + String(s).padStart(2,'0');
+  t.classList.toggle('low', exam.left <= 120);
+}
+function renderExamQ(){
+  const q = exam.qs[exam.i];
+  $('exCounter').textContent = (exam.i+1) + ' / ' + exam.qs.length;
+  $('exProgress').style.width = (exam.answers.filter(Boolean).length / exam.qs.length * 100) + '%';
+  $('exMeta').textContent = q.year + ' HSC · Question ' + q.n;
+  $('exImg').src = q.img;
+  updateExamTimer();
+  document.querySelectorAll('#exAns .ansbtn').forEach(b => {
+    b.className = 'ansbtn' + (exam.answers[exam.i] === b.dataset.l ? ' sel' : '');
+  });
+  $('exPalette').innerHTML = exam.qs.map((_,i) =>
+    `<button class="pcell ${exam.answers[i] ? 'done' : ''} ${i===exam.i ? 'cur' : ''}" onclick="examGo(${i})">${i+1}</button>`).join('');
+}
+document.querySelectorAll('#exAns .ansbtn').forEach(b => b.addEventListener('click', () => {
+  if (!exam || exam.paused) return;
+  exam.answers[exam.i] = b.dataset.l;
+  if (exam.i < exam.qs.length - 1) { exam.i++; renderExamQ(); } else renderExamQ();
+}));
+function clearExamAnswer(){ if (!exam) return; exam.answers[exam.i] = null; renderExamQ(); }
+function examNav(step){
+  if (!exam) return;
+  exam.i = Math.max(0, Math.min(exam.qs.length - 1, exam.i + step));
+  renderExamQ();
+}
+function examGo(i){ if (!exam) return; exam.i = i; renderExamQ(); }
+function pauseExam(){ if (!exam) return; exam.paused = true; $('exPauseVeil').classList.add('on'); }
+function resumeExam(){ if (!exam) return; exam.paused = false; $('exPauseVeil').classList.remove('on'); }
+function quitExam(){
+  if (!confirm('Quit the exam? Nothing will be saved.')) return;
+  clearInterval(examTick); exam = null;
+  $('exPauseVeil').classList.remove('on');
+  renderHome(); go('home');
+}
+
+async function submitExam(auto){
+  if (!exam) return;
+  const blank = exam.answers.filter(a => !a).length;
+  if (!auto && blank && !confirm(blank + ' question' + (blank===1?' is':'s are') + ' still blank. Submit anyway?')) return;
+  clearInterval(examTick);
+  exam.paused = false;
+  $('exPauseVeil').classList.remove('on');
+
+  const topics = {}, subs = {}, answers = [], review = [];
+  let correct = 0;
+  exam.qs.forEach((q, i) => {
+    const given = exam.answers[i];
+    const right = given !== null && q.ans.includes(given);
+    if (right) correct++;
+    answers.push({id: q.id, right});
+    const tt = topics[q.topic] = topics[q.topic] || [0,0];
+    tt[1]++; if (right) tt[0]++;
+    for (const s of q.subs) {
+      const key = q.topic + '|' + s;
+      const ss = subs[key] = subs[key] || [0,0];
+      ss[1]++; if (right) ss[0]++;
+    }
+    review.push({q, given, right});
+  });
+
+  const timeSec = exam.elapsed;
+  const pct = Math.round(correct / exam.qs.length * 100);
+  const attempt = {d: Date.now(), n: exam.qs.length, c: correct, timeSec,
+                   timed: true, mode: 'exam', topics, subs};
+  // exam XP: standard per-correct, plus a completion bonus for sitting the full paper
+  const xpGain = correct * QUIZ_OPTIONS.xpPerCorrect + 40;
+  me.exams = me.exams || [];
+  me.exams.push({d: attempt.d, c: correct, n: exam.qs.length, timeSec, pct});
+  const newBadges = commitAttempt(attempt, answers, xpGain, 0);
+  await Store.saveStudent(me.name, me);
+  renderExamResult(attempt, pct, xpGain, newBadges, review, auto);
+  exam = null;
+}
+
+function renderExamResult(attempt, pct, xpGain, newBadges, review, auto){
+  const b = bandFromPct(pct);
+  $('exResEmoji').textContent = pct >= 90 ? '🎓🏆' : pct >= 80 ? '🎓' : pct >= 60 ? '📄💪' : '📄';
+  $('exResScore').textContent = attempt.c + ' / ' + attempt.n;
+  $('exResSub').textContent = pct + '% · ' + fmtTime(attempt.timeSec) + ' used of 20m' + (auto ? ' · ⏱ time expired' : '');
+  $('exResBand').innerHTML = `<span style="color:${b.color}">${b.band}</span> <span class="muted" style="font-weight:400">${b.desc}</span>`;
+  $('exResXp').textContent = '+' + xpGain + ' XP earned (includes +40 for sitting the full paper)';
+  $('exResBadges').innerHTML = newBadges.map(x =>
+    `<div class="newbadge"><span style="font-size:1.6rem">${x.emoji}</span><div style="text-align:left"><b>Badge unlocked: ${x.name}</b><div class="muted">${x.desc}</div></div></div>`).join('');
+
+  let html = '<h2>Topic breakdown</h2>';
+  for (const [topic, [c, tot]] of Object.entries(attempt.topics)) {
+    html += `<div class="topicrow"><span class="tl">${topic}</span><div class="tbar"><div style="width:${tot?c/tot*100:0}%; background:${TOPIC_COLORS[topic]}"></div></div><span class="muted" style="width:52px; text-align:right">${c}/${tot}</span></div>`;
+  }
+  $('exResTopics').innerHTML = html;
+
+  $('exResReview').innerHTML = review.map((r, i) => {
+    const ansText = r.q.ans.join(' or ');
+    const verdict = r.right ? '<span style="color:var(--good)">✅ Correct</span>'
+      : r.given === null ? '<span style="color:var(--gold)">➖ Not answered</span> — answer was ' + ansText
+      : `<span style="color:var(--bad)">❌ You chose ${r.given}</span> — answer was ${ansText}`;
+    return `<div class="revq"><div class="verdict">Q${i+1}. ${verdict}</div>
+      <div class="muted" style="font-size:.82rem">${r.q.year} HSC · Question ${r.q.n} · ${r.q.topic}</div>
+      <img src="${r.q.img}" alt="Question ${i+1}" loading="lazy">
+      <div style="font-size:.92rem; line-height:1.5; color:var(--ink2)">${r.q.expl}</div></div>`;
+  }).join('');
+  go('examresult');
+}
+
 // ---------- leaderboard ----------
+let boardStudents = [], boardClassMap = {}, boardFilter = 'all';
+
 async function showLeaderboard(){
   go('board');
   $('boardTable').innerHTML = 'Loading…';
-  const students = (await Store.getAllStudents()).filter(s => s.attempts.length);
-  students.sort((a,b) => b.xp - a.xp);
-  if (!students.length) { $('boardTable').innerHTML = '<p class="muted">No quizzes played yet — be the first!</p>'; return; }
-  let html = '<table><tr><th>#</th><th>Player</th><th>Level</th><th>XP</th><th>Accuracy</th><th>Quizzes</th></tr>';
-  students.forEach((s, i) => {
+  $('boardFilter').innerHTML = '';
+  const [all, cmap] = await Promise.all([Store.getAllStudents(), Store.getClassMap()]);
+  boardClassMap = cmap || {};
+  boardStudents = all.filter(s => s.attempts.length);
+  boardFilter = classOf(me) || 'all';
+  renderClassBattle(all);
+  renderBoardFilter();
+  renderBoard();
+}
+
+function classOf(s){ return (s && (boardClassMap[s.name] || s.class)) || null; }
+
+function renderBoardFilter(){
+  const classes = Store.classList();
+  const btn = (val, label) => `<button class="btn small ${boardFilter===val?'primary':''}" onclick="setBoardFilter('${val}')">${label}</button>`;
+  $('boardFilter').innerHTML = btn('all','Everyone') + classes.map(c => btn(c, c)).join('');
+}
+function setBoardFilter(v){ boardFilter = v; renderBoardFilter(); renderBoard(); }
+
+function renderBoard(){
+  const list = boardStudents
+    .filter(s => boardFilter === 'all' || classOf(s) === boardFilter)
+    .slice().sort((a,b) => b.xp - a.xp);
+  if (!list.length) {
+    $('boardTable').innerHTML = `<p class="muted">${boardFilter==='all' ? 'No quizzes played yet — be the first!' : 'Nobody in ' + boardFilter + ' has played yet — be the first!'}</p>`;
+    return;
+  }
+  let html = '<table><tr><th>#</th><th>Player</th><th>Class</th><th>Level</th><th>XP</th><th>Accuracy</th><th>Questions</th></tr>';
+  list.forEach((s, i) => {
     const acc = s.totals.answered ? Math.round(s.totals.correct/s.totals.answered*100) : 0;
-    const cls = i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
-    html += `<tr class="${s.name===me.name?'me':''}"><td class="${cls}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td><td>${s.name}</td><td>${levelFromXp(s.xp)} · ${levelName(levelFromXp(s.xp))}</td><td>${s.xp}</td><td>${acc}%</td><td>${s.attempts.length}</td></tr>`;
+    const rank = i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
+    html += `<tr class="${s.name===me.name?'me':''}"><td class="${rank}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td><td>${s.name}</td><td class="muted">${classOf(s) || '—'}</td><td>${levelFromXp(s.xp)} · ${levelName(levelFromXp(s.xp))}</td><td>${s.xp}</td><td>${acc}%</td><td>${s.totals.answered}</td></tr>`;
   });
   $('boardTable').innerHTML = html + '</table>';
+}
+
+function renderClassBattle(allStudents){
+  const classes = Store.classList();
+  const rows = classStandings(allStudents, boardClassMap, classes);
+  if (!rows.some(r => r.active)) { $('classBattle').style.display = 'none'; return; }
+  $('classBattle').style.display = 'block';
+
+  const metrics = [
+    {key:'totalXp',  label:'Total XP',           fmt: r => r.totalXp.toLocaleString(),  val: r => r.totalXp},
+    {key:'accuracy', label:'Average accuracy',   fmt: r => r.accuracy===null ? '—' : Math.round(r.accuracy*100) + '%', val: r => r.accuracy ?? -1},
+    {key:'avgXp',    label:'Average XP / player',fmt: r => r.avgXp.toLocaleString(),    val: r => r.avgXp},
+  ];
+
+  let html = '';
+  for (const m of metrics) {
+    const best = Math.max(...rows.map(m.val));
+    const totalForBar = rows.reduce((a,r) => a + Math.max(m.val(r), 0), 0) || 1;
+    html += `<div style="margin:14px 0 4px; font-size:.85rem; color:var(--ink2); text-transform:uppercase; letter-spacing:.04em">${m.label}</div>`;
+    rows.forEach((r, i) => {
+      const leading = m.val(r) === best && best > 0;
+      const w = Math.max(m.val(r), 0) / totalForBar * 100;
+      html += `<div class="row" style="gap:10px; margin:6px 0">
+        <span style="width:52px; font-weight:800">${r.cls}</span>
+        <div class="xpbar" style="flex:1; margin:0"><div style="width:${w}%; background:${i===0?'var(--accent)':'var(--accent2)'}"></div></div>
+        <span style="width:86px; text-align:right; font-weight:${leading?'800':'600'}">${m.fmt(r)}${leading?' 👑':''}</span>
+      </div>`;
+    });
+  }
+
+  const winner = rows.slice().sort((a,b) => b.avgXp - a.avgXp)[0];
+  const tied = rows.filter(r => r.avgXp === winner.avgXp).length > 1;
+  html += `<p class="muted" style="margin-top:14px">${tied ? 'Dead heat on average XP — keep going!' : winner.cls + ' leads on average XP per player.'} · ` +
+          rows.map(r => `${r.cls}: ${r.active} playing, ${r.answered} questions`).join(' · ') + '</p>';
+  $('classBattleBody').innerHTML = html;
 }
 
 // ---------- progress ----------
@@ -663,6 +1493,341 @@ function showProgress(){
   // badges
   $('progBadges').innerHTML = BADGES.map(b =>
     `<div class="badge ${me.badges.includes(b.id)?'on':''}"><div class="be">${b.emoji}</div><div class="bn">${b.name}</div><div class="bd">${b.desc}</div></div>`).join('');
+  // short answer marks by topic
+  const sa = me.sa;
+  if (sa && sa.marksTotal > 0) {
+    $('progSACard').style.display = 'block';
+    let sh = '';
+    for (const topic of Object.keys(SYLLABUS)) {
+      const p = sa.perTopic[topic];
+      if (!p) continue;
+      const pct = Math.round(p[0]/p[1]*100);
+      sh += `<div class="topicrow"><span class="tl">${topic}</span><div class="tbar"><div style="width:${pct}%; background:${TOPIC_COLORS[topic]}"></div></div><span class="muted" style="width:110px; text-align:right">${pct}% (${p[0]}/${p[1]} marks)</span></div>`;
+    }
+    $('progSA').innerHTML = sh || '<p class="muted">No short answers marked yet.</p>';
+  } else $('progSACard').style.display = 'none';
+}
+
+// ==================================================================
+// SHORT ANSWER MODE — write on paper, scan, AI-marked against NESA criteria
+// ==================================================================
+let selSA = { n: 1, topics: new Set(), band: 'any' };
+let sa = null; // active session
+const SA_YEARS = [...new Set(SA_QUESTIONS.map(q => q.year))].sort();
+const MARK_BANDS = { any: q => true, short: q => q.marks <= 3, mid: q => q.marks === 4, long: q => q.marks >= 5 };
+
+// ensureSA now lives in store.js so the teacher dashboard shares it
+
+function showSetupSA(){
+  if (!$('saYearFrom').options.length) {
+    SA_YEARS.forEach(y => { $('saYearFrom').add(new Option(y,y)); $('saYearTo').add(new Option(y,y)); });
+    $('saYearFrom').value = SA_YEARS[0]; $('saYearTo').value = SA_YEARS[SA_YEARS.length-1];
+    $('saTopicBtns').innerHTML = Object.keys(SYLLABUS).map(t =>
+      `<button class="btn topicbtn" data-t="${t}">${t}</button>`).join('');
+    $('saTopicBtns').querySelectorAll('.topicbtn').forEach(b => b.addEventListener('click', () => {
+      const t = b.dataset.t;
+      if (selSA.topics.has(t)) { selSA.topics.delete(t); b.classList.remove('sel'); }
+      else { selSA.topics.add(t); b.classList.add('sel'); }
+      updateSAPool();
+    }));
+    $('saPresets').querySelectorAll('.preset').forEach(b => b.addEventListener('click', () => {
+      $('saPresets').querySelectorAll('.preset').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel'); selSA.n = +b.dataset.n;
+    }));
+    $('saMarksBtns').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      $('saMarksBtns').querySelectorAll('button').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel'); selSA.band = b.dataset.m; updateSAPool();
+    }));
+    $('saYearFrom').addEventListener('change', updateSAPool);
+    $('saYearTo').addEventListener('change', updateSAPool);
+  }
+  updateSAPool();
+  go('sasetup');
+}
+function filteredSAPool(){
+  const yf = +$('saYearFrom').value || SA_YEARS[0], yt = +$('saYearTo').value || SA_YEARS[SA_YEARS.length-1];
+  return SA_QUESTIONS.filter(q =>
+    q.year >= yf && q.year <= yt &&
+    (!selSA.topics.size || selSA.topics.has(q.topic)) &&
+    MARK_BANDS[selSA.band](q));
+}
+function updateSAPool(){
+  $('saPoolInfo').textContent = filteredSAPool().length + ' questions match your filters' +
+    ' · your teacher marks these against the official NESA criteria';
+}
+function pickSA(pool, n){
+  const mySA = ensureSA(me);
+  const scored = pool.map(q => ({ q, seen: mySA.seen[q.id] || 0, last: mySA.lastSeen[q.id] || 0, r: Math.random() }));
+  scored.sort((a,b) => a.seen - b.seen || a.last - b.last || a.r - b.r);
+  return scored.slice(0, n).map(x => x.q).sort(() => Math.random() - .5);
+}
+function startSA(){
+  const pool = filteredSAPool();
+  if (!pool.length) { alert('No questions match those filters — widen them a little.'); return; }
+  sa = { qs: pickSA(pool, Math.min(selSA.n, pool.length)), i: 0,
+         submitted: 0, xp: 0, t0: Date.now(), results: [] };
+  go('sa');
+  showSAQuestion();
+}
+function saShowStep(step){
+  ['saStepWrite','saStepMarking','saStepResult','saStepError']
+    .forEach(id => $(id).style.display = id === step ? 'block' : 'none');
+}
+function showSAQuestion(){
+  const q = sa.qs[sa.i];
+  $('saCounter').textContent = (sa.i+1) + ' / ' + sa.qs.length;
+  $('saProgress').style.width = (sa.i / sa.qs.length * 100) + '%';
+  $('saMeta').textContent = q.year + ' HSC · Question ' + q.n + (q.part ? '(' + q.part + ')' : '') + ' · ' + q.topic;
+  $('saMarkChip').textContent = q.marks + (q.marks === 1 ? ' mark' : ' marks');
+  $('saImg').src = q.img;
+  $('saTyped').value = '';
+  updateSAWordCount();
+  // rough guide: HSC markers expect roughly a paragraph per two marks
+  $('saGuide').textContent = 'guide: about ' + (q.marks * 35) + '–' + (q.marks * 55) + ' words';
+  $('saHintVerb').textContent = q.criteria
+    ? 'The marking guideline for the top band says:\n\n' + (q.criteria.split('\n')[0] || q.criteria).slice(0, 300)
+    : 'Answer the verb in the question directly, and use business terminology.';
+  if (sa.submitted > 0) {
+    $('saMarksSoFar').style.display = 'inline-block';
+    $('saMarksSoFar').textContent = '📮 ' + sa.submitted + ' handed in';
+  } else $('saMarksSoFar').style.display = 'none';
+  saShowStep('saStepWrite');
+  window.scrollTo(0,0);
+}
+function updateSAWordCount(){
+  const t = $('saTyped').value.trim();
+  const n = t ? t.split(/\s+/).length : 0;
+  $('saWordCount').textContent = n + (n === 1 ? ' word' : ' words');
+}
+$('saTyped').addEventListener('input', updateSAWordCount);
+
+async function saSubmitTyped(){
+  const q = sa.qs[sa.i];
+  const typed = $('saTyped').value.trim();
+  if (!typed) { alert('Type your answer before handing it in.'); return; }
+  if (typed.split(/\s+/).length < 5) {
+    if (!confirm('That looks very short for a ' + q.marks + '-mark question. Hand it in anyway?')) return;
+  }
+  saShowStep('saStepMarking');
+  try {
+    const resp = await Store.createResponse({
+      student: me.name, cls: classOf(me) || null,
+      qid: q.id, label: q.year + ' Q' + q.n + (q.part ? '(' + q.part + ')' : ''),
+      year: q.year, qn: q.n, part: q.part || null,
+      topic: q.topic, subs: q.subs || [], max: q.marks,
+      typed, submitted: Date.now(), ai: null
+    });
+    sa.submitted++;
+    sa.xp += SA_SUBMIT_XP;
+    sa.results.push({id: q.id, label: resp.label, max: q.marks, responseId: resp.id});
+    $('saFbXp').textContent = '+' + SA_SUBMIT_XP + ' XP for handing in';
+    $('saFbText').textContent = 'Your teacher will mark this against the official NESA criteria. You\'ll see your mark and feedback in "My answers" once they have.';
+    let rev = `<details class="rev"><summary>Official NESA marking criteria</summary><pre>${esc(q.criteria)}</pre></details>`;
+    if (q.sample) rev += `<details class="rev"><summary>Sample answer</summary><pre>${esc(q.sample)}</pre></details>`;
+    $('saFbReveals').innerHTML = rev;
+    $('saNextBtn').textContent = sa.i === sa.qs.length - 1 ? 'Finish →' : 'Next →';
+    saShowStep('saStepResult');
+    $('saProgress').style.width = ((sa.i + 1) / sa.qs.length * 100) + '%';
+  } catch(e){
+    $('saErrText').textContent = 'Could not reach the server. Check your connection and try again — your answer is still in the box.';
+    saShowStep('saStepError');
+  }
+}
+
+function esc(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function saNext(){
+  sa.i++;
+  if (sa.i >= sa.qs.length) finishSA();
+  else showSAQuestion();
+}
+function quitSA(){
+  const msg = sa && sa.submitted
+    ? 'Quit? The ' + sa.submitted + ' answer(s) you already handed in are safe — you just won\'t write the rest.'
+    : 'Quit? Nothing has been handed in yet.';
+  if (confirm(msg)) { sa = null; renderHome(); go('home'); }
+}
+async function finishSA(){
+  const timeSec = Math.round((Date.now() - sa.t0) / 1000);
+  // Nothing is scored here — marks arrive only when the teacher marks the work.
+  // The student earns XP for the effort of handing in.
+  const mySA = ensureSA(me);
+  mySA.submitted += sa.submitted;
+  me.xp += sa.xp;
+  const newBadges = evaluateBadges(me, null, QUESTIONS.length);
+  await Store.saveStudent(me.name, me);
+
+  const totalMarks = sa.results.reduce((a,r) => a + r.max, 0);
+  $('saResEmoji').textContent = '📮';
+  $('saResScore').textContent = sa.submitted + (sa.submitted === 1 ? ' answer' : ' answers');
+  $('saResSub').textContent = 'handed in for marking · ' + totalMarks + ' marks at stake · ' + fmtTime(timeSec);
+  $('saResXp').textContent = sa.xp ? '+' + sa.xp + ' XP for handing in — mark XP lands when your teacher marks it' : '';
+  $('saResBadges').innerHTML = newBadges.map(b =>
+    `<div class="newbadge"><span style="font-size:1.6rem">${b.emoji}</span><div style="text-align:left"><b>Badge unlocked: ${b.name}</b><div class="muted">${b.desc}</div></div></div>`).join('');
+  $('saResList').innerHTML = '<h2>Waiting to be marked</h2>' + sa.results.map(r =>
+    `<div class="sarowb"><span class="lbl">${r.label}</span><span><span class="muted">${r.max} marks</span> <span class="awaiting">awaiting marking</span></span></div>`).join('');
+  sa = null;
+  go('saresult');
+}
+
+// ---------- my short answers ----------
+async function showMyAnswers(){
+  go('myanswers');
+  $('myAnswersBody').innerHTML = 'Loading…';
+  const list = await Store.getResponsesFor(me.name);
+  if (!list.length) {
+    $('myAnswersBody').innerHTML = '<p class="muted">You haven\'t handed in any short answers yet. Try ✍️ Short Answer from the home screen.</p>';
+    return;
+  }
+  const marked = list.filter(r => r.status === 'marked');
+  const pending = list.filter(r => r.status !== 'marked');
+  const gained = marked.reduce((a,r) => a + r.mark, 0);
+  const outOf  = marked.reduce((a,r) => a + r.max, 0);
+
+  let html = '';
+  if (outOf) html += `<div class="bigstat">${gained} / ${outOf}</div><p class="center muted" style="margin-bottom:16px">${Math.round(gained/outOf*100)}% of marks on work your teacher has marked</p>`;
+  if (pending.length) {
+    html += `<h2>Awaiting marking (${pending.length})</h2>` + pending.map(r =>
+      `<div class="sarowb"><span class="lbl">${r.label} <span class="muted">· ${r.topic}</span></span>
+       <span><span class="muted">${r.max} marks</span> <span class="awaiting">with your teacher</span></span></div>`).join('');
+  }
+  if (marked.length) {
+    // remember which marks the student has now seen, so the home badge clears
+    me.saSeen = [...new Set([...(me.saSeen || []), ...marked.map(r => r.id)])];
+    Store.saveStudent(me.name, me).catch(()=>{});
+    html += `<h2 style="margin-top:20px">Marked (${marked.length})</h2>` + marked.map(r => {
+      const p = r.max ? r.mark / r.max : 0;
+      const col = p >= 0.75 ? 'var(--good)' : p >= 0.5 ? 'var(--gold)' : 'var(--bad)';
+      return `<details class="rev" style="margin-top:8px"><summary>${r.label} — <b style="color:${col}">${r.mark}/${r.max}</b></summary>
+        ${r.feedback ? `<div style="margin-top:10px"><b>Your teacher's feedback</b><div style="font-size:.93rem; line-height:1.55; margin-top:4px">${esc(r.feedback)}</div></div>` : ''}
+        <div style="margin-top:10px"><b>What you wrote</b><div class="answerbox" style="margin-top:4px">${esc(r.typed)}</div></div>
+      </details>`;
+    }).join('');
+  }
+  $('myAnswersBody').innerHTML = html;
+}
+
+// ================= PEER MARKING =================
+let peer = null, peerPool = [];
+
+async function showPeer(){
+  go('peerintro');
+  const p = me.peer || {count:0, exact:0, totalDiff:0, xp:0};
+  const avgDiff = p.count ? (p.totalDiff / p.count).toFixed(1) : '—';
+  $('peerStats').innerHTML = `<div class="row" style="justify-content:center; gap:26px">
+    <div class="center"><div class="bigstat">${p.count}</div><div class="muted">marked</div></div>
+    <div class="center"><div class="bigstat" style="color:var(--good)">${p.exact}</div><div class="muted">spot on</div></div>
+    <div class="center"><div class="bigstat" style="color:var(--gold)">${avgDiff}</div><div class="muted">avg marks out</div></div></div>`;
+  peerPool = await Store.getPeerMarkable(me.name);
+  const btn = $('peerStartBtn');
+  if (!peerPool.length) {
+    btn.disabled = true;
+    btn.textContent = 'Nothing to mark yet';
+    $('peerStats').innerHTML += '<p class="center muted" style="margin-top:14px">There are no marked answers available right now. Peer marking opens up once your classmates have handed in work <b>and</b> your teacher has marked it.</p>';
+  } else {
+    btn.disabled = false;
+    btn.textContent = 'Start marking ⚖️ (' + peerPool.length + ' available)';
+  }
+}
+
+function startPeer(){
+  if (!peerPool.length) return;
+  const picked = peerPool.slice().sort(() => Math.random() - .5).slice(0, Math.min(5, peerPool.length));
+  peer = { items: picked, i: 0, xp: 0, exact: 0, totalDiff: 0, results: [] };
+  go('peer');
+  showPeerItem();
+}
+
+function showPeerItem(){
+  const r = peer.items[peer.i];
+  const q = SA_QUESTIONS.find(x => x.id === r.qid);
+  $('peerCounter').textContent = (peer.i+1) + ' / ' + peer.items.length;
+  $('peerProgress').style.width = (peer.i / peer.items.length * 100) + '%';
+  $('peerMeta').textContent = r.label + ' · ' + r.topic;
+  $('peerMarkChip').textContent = r.max + (r.max === 1 ? ' mark' : ' marks');
+  $('peerImg').src = q ? q.img : '';
+  $('peerAnswer').textContent = r.typed;
+  $('peerCriteria').textContent = q ? q.criteria : 'Criteria unavailable.';
+  $('peerSample').textContent = q && q.sample ? q.sample : 'No sample answer available for this question.';
+  $('peerMarkBtns').innerHTML = Array.from({length: r.max + 1}, (_, m) =>
+    `<button class="btn" onclick="peerSubmit(${m})">${m}</button>`).join('');
+  if (peer.xp) { $('peerXpChip').style.display = 'inline-block'; $('peerXpChip').textContent = '+' + peer.xp + ' XP'; }
+  else $('peerXpChip').style.display = 'none';
+  $('peerStepMark').style.display = 'block';
+  $('peerStepResult').style.display = 'none';
+  window.scrollTo(0,0);
+}
+
+async function peerSubmit(mark){
+  const r = peer.items[peer.i];
+  const teacher = r.mark;
+  const diff = Math.abs(mark - teacher);
+  const gained = peerXp(mark, teacher);
+  const v = peerVerdict(diff);
+
+  peer.xp += gained;
+  peer.totalDiff += diff;
+  if (diff === 0) peer.exact++;
+  peer.results.push({label: r.label, mine: mark, teacher, max: r.max, diff, xp: gained});
+
+  await Store.addPeerMark(r.id, me.name, mark, gained);
+
+  const fb = $('peerFb');
+  fb.className = 'feedback ' + (diff <= 1 ? 'good' : 'bad');
+  $('peerFbMark').textContent = v.emoji + ' ' + mark + ' vs ' + teacher;
+  $('peerFbMark').style.color = v.color;
+  $('peerFbVerdict').textContent = v.label;
+  $('peerFbVerdict').style.color = v.color;
+  $('peerFbXp').textContent = gained ? '+' + gained + ' XP' : 'No XP this time — have another look at the criteria';
+  $('peerFbTeacher').innerHTML = `<b>You gave ${mark}/${r.max} · your teacher gave ${teacher}/${r.max}</b>` +
+    (r.feedback ? `<div style="margin-top:8px"><b>Teacher's feedback on this answer</b><div style="margin-top:4px">${esc(r.feedback)}</div></div>` : '');
+  const q = SA_QUESTIONS.find(x => x.id === r.qid);
+  let rev = '';
+  if (q) {
+    rev += `<details class="rev"><summary>Official NESA marking criteria</summary><pre>${esc(q.criteria)}</pre></details>`;
+    if (q.sample) rev += `<details class="rev"><summary>Sample answer</summary><pre>${esc(q.sample)}</pre></details>`;
+  }
+  $('peerFbReveals').innerHTML = rev;
+  $('peerNextBtn').textContent = peer.i === peer.items.length - 1 ? 'See results →' : 'Next →';
+  $('peerStepMark').style.display = 'none';
+  $('peerStepResult').style.display = 'block';
+  $('peerProgress').style.width = ((peer.i + 1) / peer.items.length * 100) + '%';
+}
+
+function peerNext(){
+  peer.i++;
+  if (peer.i >= peer.items.length) finishPeer();
+  else showPeerItem();
+}
+function quitPeer(){
+  if (confirm('Quit peer marking? Marks you\'ve already given are saved.')) { peer = null; renderHome(); go('home'); }
+}
+
+async function finishPeer(){
+  const n = peer.results.length;
+  const p = me.peer = me.peer || {count:0, exact:0, totalDiff:0, xp:0};
+  p.count += n; p.exact += peer.exact; p.totalDiff += peer.totalDiff; p.xp += peer.xp;
+  me.xp += peer.xp;
+  // recorded so the teacher sees the activity, but flagged so it never counts as answering practice
+  me.attempts.push({d: Date.now(), n: 0, c: 0, timeSec: 0, timed: false,
+                    mode: 'peermark', marked: n, exact: peer.exact, xpEarned: peer.xp,
+                    topics: {}, subs: {}});
+  const newBadges = evaluateBadges(me, null, QUESTIONS.length);
+  await Store.saveStudent(me.name, me);
+
+  const avg = n ? (peer.totalDiff / n).toFixed(1) : '0';
+  $('peerResEmoji').textContent = peer.exact === n ? '🎯🏆' : peer.exact ? '⚖️👏' : '⚖️';
+  $('peerResScore').textContent = peer.exact + ' / ' + n;
+  $('peerResSub').textContent = 'spot on · average ' + avg + ' marks away from your teacher';
+  $('peerResXp').textContent = peer.xp ? '+' + peer.xp + ' XP earned' : '';
+  $('peerResBadges').innerHTML = newBadges.map(b =>
+    `<div class="newbadge"><span style="font-size:1.6rem">${b.emoji}</span><div style="text-align:left"><b>Badge unlocked: ${b.name}</b><div class="muted">${b.desc}</div></div></div>`).join('');
+  $('peerResList').innerHTML = '<h2>How you marked</h2>' + peer.results.map(r => {
+    const v = peerVerdict(r.diff);
+    return `<div class="sarowb"><span class="lbl">${r.label}</span>
+      <span><span class="muted">you ${r.mine} · teacher ${r.teacher}</span> <b style="color:${v.color}">${v.emoji} +${r.xp} XP</b></span></div>`;
+  }).join('');
+  peer = null;
+  go('peerresult');
 }
 </script>
 </body>

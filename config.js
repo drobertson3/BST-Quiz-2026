@@ -7,22 +7,13 @@
 //    Students pick their name and set their own PIN on first login.
 const CLASS_LIST = [
   "Demo Student",
-  "Oscar",
-  "Toby",
-  "Eamon",
-  "Lucy",
-  "Matty",
-  "Matt",
-  "Ben",
-  "Lachlan",
-  "Elyse",
-  "Ruby",
-  "Hayden",
-  "Flynn",
-  "Henry",
-  "Luka",
-  "Billy",
+  // "Oscar",
+  // "Add your students here...",
 ];
+
+// 1b. CLASSES — the teacher assigns each student to one of these in the
+//     dashboard (Class list tab). Order here sets the order shown on screen.
+const CLASSES = ["DRO", "DJK"];
 
 // 2. FIREBASE — paste your config here (see SETUP.md, ~10 minutes).
 //    Leave apiKey empty ("") to run in device-only practice mode.
@@ -40,4 +31,10 @@ const firebaseConfig = {
 const QUIZ_OPTIONS = {
   secondsPerQuestion: 90,   // timer pace when the timer is switched on
   xpPerCorrect: 10,         // base XP per correct answer
+  xpPerMark: 10,            // XP per mark earned on short-answer questions
 };
+
+// 4. SHORT ANSWER MARKING
+//    Students type their Section II answers and hand them in; you mark them from
+//    the Teacher Dashboard. The AI marking assistant (optional) lives in the
+//    dashboard's config.js so your API key is never served to students.
