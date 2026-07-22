@@ -62,7 +62,9 @@ const Store = (() => {
   }
   async function saveRoster(names){
     const clean = [...new Set(names.map(n=>n.trim()).filter(Boolean))];
-    if (cloud) await db.collection('meta').doc('roster').set({names: clean});
+    // merge:true is essential — this doc also holds `classes` and `removed`, and a
+    // plain set() would wipe every student's class assignment each time names are saved.
+    if (cloud) await db.collection('meta').doc('roster').set({names: clean}, {merge:true});
     else lsSet('hscq_roster', clean);
     return clean;
   }
