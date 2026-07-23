@@ -303,9 +303,14 @@ function ensureSA(s){
   return s.sa;
 }
 
+// Short-answer marks are worth TRIPLE the base per-mark XP — writing a full response
+// is the hardest work in the game, so each mark earns 3x what a multiple-choice mark does.
+// Note: marks are credited from the dashboard, which doesn't load QUIZ_OPTIONS, so the
+// base reliably falls back to 10 → 30 XP per mark.
+const SA_MARK_MULTIPLIER = 3;
 function saXpFor(mark, max){
   const xpPerMark = (typeof QUIZ_OPTIONS !== 'undefined' ? QUIZ_OPTIONS.xpPerMark : 10) || 10;
-  return mark * xpPerMark + (mark === max && max >= 2 ? 5 : 0);
+  return mark * xpPerMark * SA_MARK_MULTIPLIER + (mark === max && max >= 2 ? 5 : 0);
 }
 
 // Credit a teacher-approved mark to the student's record. Called from the dashboard

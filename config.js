@@ -31,7 +31,7 @@ const firebaseConfig = {
 const QUIZ_OPTIONS = {
   secondsPerQuestion: 90,   // timer pace when the timer is switched on
   xpPerCorrect: 10,         // base XP per correct answer
-  xpPerMark: 10,            // XP per mark earned on short-answer questions
+  xpPerMark: 10,            // base XP per mark; short answers earn 3x this (30 per mark)
 };
 
 // 4. SHORT ANSWER MARKING
