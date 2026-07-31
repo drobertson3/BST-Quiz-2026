@@ -136,10 +136,100 @@ textarea:focus{outline:2px solid var(--accent)}
 .bigstat{font-size:2.6rem; font-weight:900; text-align:center; color:var(--accent2)}
 /* ---- short answer / peer marking ---- */
 .answerbox{background:var(--bg2); border:1px solid var(--line); border-radius:10px; padding:14px; font-size:.95rem; line-height:1.6; white-space:pre-wrap; max-height:420px; overflow-y:auto}
+.crittable{width:100%; border-collapse:collapse; margin-top:8px; font-size:.9rem}
+.crittable th{text-align:left; color:var(--ink2); font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; padding:6px 8px; border-bottom:1px solid var(--line)}
+.crittable td{padding:8px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5}
+.crittable .critmark{font-weight:800; color:var(--accent2); white-space:nowrap; text-align:center; width:64px}
+.crittable .critpart td{background:var(--bg2); font-weight:700; color:var(--ink); font-size:.85rem}
 .sarowb{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
 .sarowb .lbl{font-weight:600; font-size:.92rem}
 .awaiting{background:rgba(255,193,7,.14); color:var(--gold); border-radius:99px; padding:3px 12px; font-size:.75rem; font-weight:800}
 .markedpill{background:rgba(46,213,115,.16); color:var(--good); border-radius:99px; padding:3px 12px; font-size:.75rem; font-weight:800}
+/* ---- concept library ---- */
+/* ---- matching ---- */
+.matchgrid{display:grid; grid-template-columns:1fr 1.4fr; gap:12px; margin-top:6px}
+@media(max-width:620px){.matchgrid{grid-template-columns:1fr}}
+.mcol{display:flex; flex-direction:column; gap:8px}
+.mcard{background:var(--card2); border:2px solid var(--line); border-radius:12px; padding:12px 14px; cursor:pointer; color:var(--ink); text-align:left; font-size:.92rem; line-height:1.45; transition:all .15s}
+.mcard:hover:not(:disabled){border-color:var(--accent2)}
+.mcard.term{font-weight:700; font-size:1rem}
+.mcard.sel{border-color:var(--accent); background:rgba(108,92,231,.25)}
+.mcard.hit{border-color:var(--good); background:rgba(0,214,143,.14); color:var(--ink2); cursor:default; animation:pop .3s ease}
+.mcard.miss{border-color:var(--bad); background:rgba(255,94,122,.16); animation:shake .35s ease}
+.mcard.done{opacity:.45}
+.mcolhead{font-size:.75rem; color:var(--ink2); text-transform:uppercase; letter-spacing:.05em; font-weight:700; margin-bottom:2px}
+.matchbar{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px}
+.mrevrow{display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); font-size:.9rem; line-height:1.5}
+.mrevrow .mk{flex:0 0 22px; font-size:1rem}
+/* ---- flashcards ---- */
+.flashcard{background:var(--card2); border:1px solid var(--line); border-radius:18px; padding:34px 24px; min-height:230px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; cursor:pointer}
+.flashcard .ft{font-size:1.5rem; font-weight:800; line-height:1.35}
+.flashcard .fd{font-size:1.02rem; line-height:1.6; margin-top:14px; color:var(--ink)}
+.flashcard .ff{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.86rem; background:var(--bg2); border-radius:8px; padding:8px 12px; margin-top:12px; color:var(--accent2)}
+.flashcard .fh{font-size:.78rem; color:var(--ink2); margin-top:18px; text-transform:uppercase; letter-spacing:.06em}
+.ratebtns{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:14px}
+@media(max-width:480px){.ratebtns{grid-template-columns:repeat(2,1fr)}}
+.ratebtn{border:2px solid var(--line); background:var(--card2); color:var(--ink); border-radius:12px; padding:12px 6px; font-weight:700; cursor:pointer; font-size:.9rem}
+.ratebtn small{display:block; font-weight:400; font-size:.7rem; color:var(--ink2); margin-top:3px}
+.ratebtn.again:hover{border-color:var(--bad)} .ratebtn.hard:hover{border-color:var(--gold)}
+.ratebtn.good:hover{border-color:var(--good)} .ratebtn.easy:hover{border-color:var(--accent2)}
+/* ---- chain builder ---- */
+.chainslot{display:flex; align-items:center; gap:10px; background:var(--bg2); border:1px dashed var(--line); border-radius:12px; padding:11px 14px; margin-bottom:8px; font-size:.93rem; line-height:1.45; min-height:46px}
+.chainslot.filled{background:rgba(0,214,143,.12); border:1px solid var(--good); border-style:solid}
+.chainslot .num{flex:0 0 26px; height:26px; border-radius:50%; background:var(--card2); color:var(--ink2); display:flex; align-items:center; justify-content:center; font-size:.78rem; font-weight:800}
+.chainslot.filled .num{background:var(--good); color:#03301f}
+.chainpool{display:flex; flex-direction:column; gap:8px}
+.chainchip{background:var(--card2); border:2px solid var(--line); border-radius:12px; padding:11px 14px; cursor:pointer; color:var(--ink); text-align:left; font-size:.93rem; line-height:1.45}
+.chainchip:hover:not(:disabled){border-color:var(--accent2)}
+.chainchip.miss{border-color:var(--bad); background:rgba(255,94,122,.16); animation:shake .35s ease}
+.chainchip.used{display:none}
+.chainwhy{background:rgba(108,92,231,.12); border:1px solid var(--accent); border-radius:12px; padding:12px 14px; margin-top:12px; font-size:.9rem; line-height:1.55}
+/* ---- diagram labelling ---- */
+.dgwrap{background:var(--bg2); border:1px solid var(--line); border-radius:14px; padding:8px; margin-bottom:12px}
+.dgwrap svg{width:100%; height:auto; display:block}
+.dgnote{fill:var(--ink2); font-size:12px}
+.dgaxis{fill:var(--ink); font-size:13px}
+.dgbig{fill:var(--ink); font-size:22px; font-weight:800}
+.dzone{fill:rgba(108,92,231,.16); stroke:var(--accent2); stroke-width:1.5; cursor:pointer; rx:8}
+.dzone.armed{fill:rgba(108,92,231,.4); stroke:var(--accent)}
+.dzone.hit{fill:rgba(0,214,143,.2); stroke:var(--good); cursor:default}
+.dzone.miss{fill:rgba(255,94,122,.28); stroke:var(--bad)}
+.dztext{fill:var(--ink); font-size:13px; text-anchor:middle; pointer-events:none}
+.dlead{stroke:var(--ink2); stroke-width:1.2; stroke-dasharray:3 3}
+.dgchips{display:flex; gap:8px; flex-wrap:wrap}
+.dgchip{background:var(--card2); border:2px solid var(--line); border-radius:10px; padding:9px 13px; cursor:pointer; color:var(--ink); font-size:.9rem; font-weight:600}
+.dgchip:hover:not(:disabled){border-color:var(--accent2)}
+.dgchip.sel{border-color:var(--accent); background:rgba(108,92,231,.25)}
+.dgchip.used{display:none}
+.dgpicker{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px}
+.dgpick{background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:14px; cursor:pointer; color:var(--ink); text-align:left}
+.dgpick:hover{border-color:var(--accent)}
+.dgpick .n{font-weight:700; font-size:.95rem} .dgpick .s{font-size:.76rem; color:var(--ink2); margin-top:4px}
+/* ---- content mapper ---- */
+.mapmeta{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px}
+.mapask{font-size:1.02rem; font-weight:700; margin:16px 0 10px}
+.mapdrops{display:grid; grid-template-columns:1fr 1.3fr; gap:12px; align-items:end}
+@media(max-width:560px){.mapdrops{grid-template-columns:1fr}}
+.mapdrops label{display:block; font-size:.72rem; color:var(--ink2); text-transform:uppercase; letter-spacing:.05em; font-weight:700; margin-bottom:5px}
+.mapdrops select:disabled{opacity:.45; cursor:not-allowed}
+.maptrail{background:var(--bg2); border-left:4px solid var(--accent2); border-radius:0 10px 10px 0; padding:11px 14px; margin-top:12px; font-size:.98rem; font-weight:600}
+.maptrail .sep{color:var(--ink2); font-weight:400; margin:0 7px}
+.maptrail .todo{color:var(--ink2); font-weight:400; font-style:italic}
+.mapalso{display:inline-block; background:var(--card2); border-radius:99px; padding:3px 11px; font-size:.78rem; margin:5px 5px 0 0}
+/* ---- syllabus drills ---- */
+.menubtn.sylgame.sel{border-color:var(--accent); background:linear-gradient(135deg,rgba(108,92,231,.32),rgba(142,68,173,.22))}
+.sylquote{background:var(--bg2); border-left:4px solid var(--accent2); border-radius:0 12px 12px 0; padding:16px 18px; font-size:1.08rem; line-height:1.6}
+.sylsub{font-size:1.25rem; font-weight:800; padding:6px 0}
+.sylblank{display:inline-block; min-width:70px; border-bottom:3px solid var(--gold); color:var(--gold); font-weight:800; letter-spacing:1px}
+.sylopts{display:grid; gap:10px; margin-top:16px}
+.sylopt{display:block; width:100%; text-align:left; background:var(--card2); border:2px solid var(--line); border-radius:12px; padding:14px 16px; color:var(--ink); font-size:.98rem; line-height:1.5; cursor:pointer; font-family:inherit; transition:all .15s}
+.sylopt:hover:not(.done){border-color:var(--accent2); transform:translateY(-1px)}
+.sylopt.sel{border-color:var(--accent); background:rgba(108,92,231,.24)}
+.sylopt.done{cursor:default}
+.sylopt.correct{background:rgba(0,214,143,.18); border-color:var(--good)}
+.sylopt.wrong{background:rgba(255,94,122,.16); border-color:var(--bad)}
+.sylopt.reveal{border-color:var(--good)}
+.sylfrom{display:block; margin-top:6px; font-size:.75rem; color:var(--ink2); font-style:italic}
 </style>
 </head>
 <body>
@@ -194,6 +284,13 @@ textarea:focus{outline:2px solid var(--accent)}
       <button class="menubtn" onclick="showSetupSA()"><div class="e">✍️</div><div class="t">Short Answer Quiz</div><div class="d" id="saDesc">Write answers for your teacher to mark</div></button>
       <button class="menubtn" onclick="showPeer()"><div class="e">⚖️</div><div class="t">Peer Marking</div><div class="d" id="peerDesc">Mark a classmate's answer</div></button>
       <button class="menubtn" onclick="showMyAnswers()"><div class="e">📮</div><div class="t">My Answers</div><div class="d" id="myAnsDesc">Marks & feedback on your writing</div></button>
+      <button class="menubtn" onclick="showMapSetup()"><div class="e">🗺️</div><div class="t">Content Mapper</div><div class="d" id="mapDesc">Place a question in the syllabus</div></button>
+      <button class="menubtn" onclick="showMatchSetup()"><div class="e">🔗</div><div class="t">Matching</div><div class="d" id="matchDesc">Pair terms with definitions</div></button>
+      <button class="menubtn" onclick="showFlash()"><div class="e">🎴</div><div class="t">Flashcards</div><div class="d" id="flashDesc">Spaced repetition on key terms</div></button>
+      <button class="menubtn" onclick="showDefSetup()"><div class="e">📖</div><div class="t">Definition Quiz</div><div class="d" id="defDesc">Multiple choice on terminology</div></button>
+      <button class="menubtn" onclick="showChainSetup()"><div class="e">⛓️</div><div class="t">Chain Builder</div><div class="d" id="chainDesc">Put cause and effect in order</div></button>
+      <button class="menubtn" onclick="showDiagramPick()"><div class="e">📐</div><div class="t">Diagram Labelling</div><div class="d" id="diagDesc">Label the key HSC diagrams</div></button>
+      <button class="menubtn" onclick="showSyl()"><div class="e">🧠</div><div class="t">Syllabus Drills</div><div class="d" id="sylDesc">Learn the dot points by heart</div></button>
       <button class="menubtn" onclick="startMistakes()"><div class="e">🔁</div><div class="t">My Mistakes</div><div class="d" id="mistakeCount">Retry questions you got wrong</div></button>
       <button class="menubtn" onclick="showDaily()"><div class="e">📆</div><div class="t">Daily Challenge</div><div class="d" id="dailyDesc">5 questions · same for everyone</div></button>
       <button class="menubtn" onclick="showSurvival()"><div class="e">💀</div><div class="t">Survival</div><div class="d" id="survDesc">One wrong answer ends the run</div></button>
@@ -285,7 +382,7 @@ textarea:focus{outline:2px solid var(--accent)}
     </div>
     <div class="card" id="resTopics"></div>
     <div class="center row" style="justify-content:center; padding-bottom:30px">
-      <button class="btn primary" onclick="showSetup('quiz')">Play again</button>
+      <button class="btn primary" id="resAgainBtn" onclick="showSetup('quiz')">Play again</button>
       <button class="btn" onclick="renderHome();go('home')">Home</button>
     </div>
   </div>
@@ -423,6 +520,7 @@ textarea:focus{outline:2px solid var(--accent)}
     <div class="card"><h2>Topic strength <span class="muted" style="font-weight:400">(multiple choice)</span></h2><div id="progTopics"></div></div>
     <div class="card" id="progSACard" style="display:none"><h2>Short answer marks by topic</h2><div id="progSA"></div></div>
     <div class="card"><h2>Weakest syllabus areas</h2><div id="progWeak"></div></div>
+    <div class="card" id="progSylCard" style="display:none"><h2>Syllabus recall <span class="muted" style="font-weight:400">(drills)</span></h2><div id="progSyl"></div></div>
     <div class="card"><h2>Badges</h2><div class="badgegrid" id="progBadges"></div></div>
   </div>
 
@@ -596,7 +694,7 @@ textarea:focus{outline:2px solid var(--accent)}
       <div id="peerStepMark">
         <h2 style="margin-top:14px">A classmate's answer</h2>
         <div class="answerbox" id="peerAnswer"></div>
-        <details class="rev" open style="margin-top:12px"><summary>Official NESA marking criteria</summary><pre id="peerCriteria"></pre></details>
+        <details class="rev" open style="margin-top:12px"><summary>Official NESA marking criteria</summary><div id="peerCriteria"></div></details>
         <details class="rev"><summary>Sample answer</summary><pre id="peerSample"></pre></details>
         <p style="margin-top:14px; font-weight:600; text-align:center">What mark would you give it?</p>
         <div class="selfmarks" id="peerMarkBtns"></div>
@@ -631,11 +729,369 @@ textarea:focus{outline:2px solid var(--accent)}
       <button class="btn" onclick="renderHome();go('home')">Home</button>
     </div>
   </div>
+
+  <!-- ============ MATCHING SETUP ============ -->
+  <div id="scr-matchsetup" class="screen">
+    <a class="back" onclick="renderHome();go('home')">← home</a>
+    <h1 style="margin:10px 0 6px">🔗 Matching</h1>
+    <p class="muted" style="margin-bottom:16px">Tap a term, then tap its definition. First-time matches count as correct.</p>
+    <div class="card">
+      <h2>Pairs per round</h2>
+      <div class="row">
+        <button class="btn preset" data-mn="4">4</button>
+        <button class="btn preset sel" data-mn="6">6</button>
+        <button class="btn preset" data-mn="8">8</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>How many rounds?</h2>
+      <div class="row">
+        <button class="btn preset" data-mr="2">2</button>
+        <button class="btn preset sel" data-mr="3">3</button>
+        <button class="btn preset" data-mr="5">5</button>
+      </div>
+      <p class="muted" style="margin-top:8px" id="matchPoolInfo"></p>
+    </div>
+    <div class="card">
+      <h2>Topics <span class="muted" style="font-weight:400">(leave all off for a mix)</span></h2>
+      <div class="row" id="matchTopicBtns"></div>
+      <div id="matchSubWrap" style="display:none">
+        <p class="muted" style="margin-top:12px">Narrow to syllabus areas (optional):</p>
+        <div class="subselect" id="matchSubList"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="grid2">
+        <label class="opt"><input type="checkbox" id="matchTimed"> ⏱️ Timed rounds (60s each)</label>
+        <label class="opt"><input type="checkbox" id="matchWeak"> 🎯 Favour terms I've missed</label>
+      </div>
+    </div>
+    <div class="center" style="padding-bottom:30px">
+      <button class="btn primary" style="font-size:1.15rem; padding:16px 44px" onclick="startMatching()">Start matching 🔗</button>
+    </div>
+  </div>
+
+  <!-- ============ MATCHING GAME ============ -->
+  <div id="scr-match" class="screen">
+    <div class="matchbar">
+      <span class="chip" id="matchRound"></span>
+      <div class="pbar"><div id="matchProg" style="width:0%"></div></div>
+      <span class="timer" id="matchTimer" style="display:none"></span>
+      <button class="btn small ghost" onclick="quitMatching()">Quit</button>
+    </div>
+    <div class="card">
+      <div class="matchgrid">
+        <div>
+          <div class="mcolhead">Term</div>
+          <div class="mcol" id="matchTerms"></div>
+        </div>
+        <div>
+          <div class="mcolhead">Definition</div>
+          <div class="mcol" id="matchDefs"></div>
+        </div>
+      </div>
+      <div class="center" id="matchNextWrap" style="display:none; margin-top:16px">
+        <button class="btn primary" onclick="matchNextRound()" id="matchNextBtn">Next round →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FLASHCARDS ============ -->
+  <div id="scr-flashintro" class="screen">
+    <a class="back" onclick="renderHome();go('home')">← home</a>
+    <h1 style="margin:10px 0 16px">🎴 Flashcards</h1>
+    <div class="card" id="flashIntroCard"></div>
+    <div class="card">
+      <h2>How it works</h2>
+      <p class="steps">Read the term, recall the definition, then flip the card and tell it how you went. Cards you find <b>hard</b> come back sooner; cards you find <b>easy</b> come back in weeks. Everything is scheduled per term, so the deck focuses itself on what you haven't learnt yet.</p>
+    </div>
+    <div class="center" style="padding-bottom:30px">
+      <button class="btn primary" style="font-size:1.15rem; padding:16px 44px" onclick="startFlash()" id="flashStartBtn">Start reviewing 🎴</button>
+    </div>
+  </div>
+
+  <div id="scr-flash" class="screen">
+    <div class="matchbar">
+      <span class="chip" id="flashCount"></span>
+      <div class="pbar"><div id="flashProg" style="width:0%"></div></div>
+      <button class="btn small ghost" onclick="quitFlash()">Finish</button>
+    </div>
+    <div class="card">
+      <div class="flashcard" id="flashCard" onclick="flipFlash()"></div>
+      <div id="flashRate" style="display:none">
+        <div class="ratebtns">
+          <button class="ratebtn again" onclick="rateFlash(0)">Again<small id="rlAgain"></small></button>
+          <button class="ratebtn hard"  onclick="rateFlash(1)">Hard<small id="rlHard"></small></button>
+          <button class="ratebtn good"  onclick="rateFlash(2)">Good<small id="rlGood"></small></button>
+          <button class="ratebtn easy"  onclick="rateFlash(3)">Easy<small id="rlEasy"></small></button>
+        </div>
+      </div>
+      <div class="center" id="flashFlipHint" style="margin-top:14px"><span class="muted">Tap the card to reveal the definition</span></div>
+    </div>
+  </div>
+
+  <!-- ============ DEFINITION QUIZ SETUP ============ -->
+  <div id="scr-defsetup" class="screen">
+    <a class="back" onclick="renderHome();go('home')">← home</a>
+    <h1 style="margin:10px 0 6px">📖 Definition Quiz</h1>
+    <p class="muted" style="margin-bottom:16px">Multiple choice built from the term bank. Wrong options come from the same syllabus area, so you have to know the difference.</p>
+    <div class="card">
+      <h2>How many questions?</h2>
+      <div class="row">
+        <button class="btn preset" data-dn="5">5</button>
+        <button class="btn preset sel" data-dn="10">10</button>
+        <button class="btn preset" data-dn="20">20</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Topics <span class="muted" style="font-weight:400">(leave all off for a mix)</span></h2>
+      <div class="row" id="defTopicBtns"></div>
+      <p class="muted" style="margin-top:10px" id="defPoolInfo"></p>
+    </div>
+    <div class="card">
+      <div class="grid2">
+        <label class="opt"><input type="checkbox" id="defReverse" checked> 🔄 Mix in reverse questions (given the definition, name the term)</label>
+        <label class="opt"><input type="checkbox" id="defWeak"> 🎯 Favour terms I've missed</label>
+      </div>
+    </div>
+    <div class="center" style="padding-bottom:30px">
+      <button class="btn primary" style="font-size:1.15rem; padding:16px 44px" onclick="startDefQuiz()">Start quiz 📖</button>
+    </div>
+  </div>
+
+  <div id="scr-def" class="screen">
+    <div class="matchbar">
+      <span class="chip" id="defCount"></span>
+      <div class="pbar"><div id="defProg" style="width:0%"></div></div>
+      <span class="streak" id="defStreak"></span>
+      <button class="btn small ghost" onclick="quitDef()">Quit</button>
+    </div>
+    <div class="card">
+      <div class="muted" id="defPrompt" style="font-size:.8rem; text-transform:uppercase; letter-spacing:.05em"></div>
+      <div id="defStem" style="font-size:1.15rem; font-weight:700; line-height:1.5; margin:10px 0 18px"></div>
+      <div class="mcol" id="defOptions"></div>
+      <div class="feedback" id="defFb">
+        <div class="fh" id="defFbHead"></div>
+        <div id="defFbBody" style="font-size:.94rem; line-height:1.55"></div>
+        <div id="defFbTags"></div>
+        <div class="center" style="margin-top:14px"><button class="btn primary" onclick="defNext()" id="defNextBtn">Next →</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CHAIN BUILDER ============ -->
+  <div id="scr-chainsetup" class="screen">
+    <a class="back" onclick="renderHome();go('home')">← home</a>
+    <h1 style="margin:10px 0 6px">⛓️ Chain Builder</h1>
+    <p class="muted" style="margin-bottom:16px">Rebuild the causal chain in the right order — the skill Section II and the essays are really testing.</p>
+    <div class="card">
+      <h2>How many chains?</h2>
+      <div class="row">
+        <button class="btn preset" data-cn="3">3</button>
+        <button class="btn preset sel" data-cn="5">5</button>
+        <button class="btn preset" data-cn="8">8</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Topics <span class="muted" style="font-weight:400">(leave all off for a mix)</span></h2>
+      <div class="row" id="chainTopicBtns"></div>
+      <p class="muted" style="margin-top:10px" id="chainPoolInfo"></p>
+    </div>
+    <div class="center" style="padding-bottom:30px">
+      <button class="btn primary" style="font-size:1.15rem; padding:16px 44px" onclick="startChains()">Start building ⛓️</button>
+    </div>
+  </div>
+
+  <div id="scr-chain" class="screen">
+    <div class="matchbar">
+      <span class="chip" id="chainCount"></span>
+      <div class="pbar"><div id="chainProg" style="width:0%"></div></div>
+      <button class="btn small ghost" onclick="quitChains()">Quit</button>
+    </div>
+    <div class="card">
+      <h2 id="chainTitle" style="margin-bottom:4px"></h2>
+      <div class="muted" id="chainTopic" style="font-size:.82rem; margin-bottom:14px"></div>
+      <div id="chainSlots"></div>
+      <div class="mcolhead" style="margin:16px 0 6px" id="chainPoolHead">Tap the step that comes next</div>
+      <div class="chainpool" id="chainPool"></div>
+      <div id="chainWhyWrap" style="display:none">
+        <div class="chainwhy" id="chainWhy"></div>
+        <div class="center" style="margin-top:14px"><button class="btn primary" onclick="chainNext()" id="chainNextBtn">Next chain →</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DIAGRAM LABELLING ============ -->
+  <div id="scr-diagpick" class="screen">
+    <a class="back" onclick="renderHome();go('home')">← home</a>
+    <h1 style="margin:10px 0 6px">📐 Diagram Labelling</h1>
+    <p class="muted" style="margin-bottom:16px">Tap a label, then tap where it belongs on the diagram.</p>
+    <div class="card">
+      <div class="center" style="margin-bottom:14px">
+        <button class="btn primary" onclick="startDiagrams(null)">🎲 Random run — all 10 diagrams</button>
+      </div>
+      <div class="dgpicker" id="diagPicker"></div>
+    </div>
+  </div>
+
+  <div id="scr-diag" class="screen">
+    <div class="matchbar">
+      <span class="chip" id="diagCount"></span>
+      <div class="pbar"><div id="diagProg" style="width:0%"></div></div>
+      <button class="btn small ghost" onclick="quitDiagrams()">Quit</button>
+    </div>
+    <div class="card">
+      <h2 id="diagTitle" style="margin-bottom:4px"></h2>
+      <div class="muted" id="diagTopic" style="font-size:.82rem; margin-bottom:10px"></div>
+      <div class="dgwrap" id="diagWrap"></div>
+      <div class="dgchips" id="diagChips"></div>
+      <div id="diagNoteWrap" style="display:none">
+        <div class="chainwhy" id="diagNote"></div>
+        <div class="center" style="margin-top:14px"><button class="btn primary" onclick="diagNext()" id="diagNextBtn">Next diagram →</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CONTENT MAPPER ============ -->
+  <div id="scr-mapsetup" class="screen">
+    <a class="back" onclick="renderHome();go('home')">← home</a>
+    <h1 style="margin:10px 0 6px">🗺️ Content Mapper</h1>
+    <p class="muted" style="margin-bottom:16px">Read a real HSC question and work out where it sits in the syllabus. Recognising what's being asked is half the battle in the exam.</p>
+    <div class="card">
+      <h2>Question type</h2>
+      <div class="row">
+        <button class="btn preset" data-mps="mc">Multiple choice</button>
+        <button class="btn preset" data-mps="sa">Short answer</button>
+        <button class="btn preset sel" data-mps="both">Both</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>How many questions?</h2>
+      <div class="row">
+        <button class="btn preset" data-mpn="5">5</button>
+        <button class="btn preset sel" data-mpn="10">10</button>
+        <button class="btn preset" data-mpn="20">20</button>
+      </div>
+      <p class="muted" style="margin-top:10px" id="mapPoolInfo"></p>
+    </div>
+    <div class="card">
+      <h2>Topics <span class="muted" style="font-weight:400">(leave all off for a mix)</span></h2>
+      <div class="row" id="mapTopicBtns"></div>
+      <p class="muted" style="margin-top:10px">This narrows which questions you're asked. The topic dropdown still lists all four, so filtering can't hand you the answer.</p>
+    </div>
+    <div class="center" style="padding-bottom:30px">
+      <button class="btn primary" style="font-size:1.15rem; padding:16px 44px" onclick="startMapper()">Start mapping 🗺️</button>
+    </div>
+  </div>
+
+  <div id="scr-map" class="screen">
+    <div class="matchbar">
+      <span class="chip" id="mapCount"></span>
+      <div class="pbar"><div id="mapProg" style="width:0%"></div></div>
+      <span class="streak" id="mapStreak"></span>
+      <button class="btn small ghost" onclick="quitMapper()">Quit</button>
+    </div>
+    <div class="card">
+      <div class="mapmeta" id="mapMeta"></div>
+      <div class="qimgbox"><img id="mapImg" alt="HSC question"></div>
+      <div class="mapask">Where does this question sit in the syllabus?</div>
+      <div class="mapdrops">
+        <div>
+          <label for="mapTopic">Topic</label>
+          <select id="mapTopic" onchange="mapPickTopic()"></select>
+        </div>
+        <div>
+          <label for="mapSub">Syllabus area</label>
+          <select id="mapSub" onchange="mapPickSub()" disabled></select>
+        </div>
+      </div>
+      <div class="maptrail" id="mapTrail"></div>
+      <div class="center" style="margin-top:14px" id="mapSubmitWrap">
+        <button class="btn primary" id="mapSubmitBtn" onclick="mapSubmit()" disabled>Check my answer</button>
+      </div>
+      <div class="feedback" id="mapFb">
+        <div class="fh" id="mapFbHead"></div>
+        <div id="mapFbBody" style="font-size:.94rem; line-height:1.55"></div>
+        <div id="mapFbExtra"></div>
+        <div class="center" style="margin-top:14px"><button class="btn primary" onclick="mapNext()" id="mapNextBtn">Next →</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SYLLABUS DRILLS ============ -->
+  <div id="scr-sylhub" class="screen">
+    <a class="back" onclick="go('home')">← home</a>
+    <h1 style="margin:10px 0 4px">🧠 Syllabus Drills</h1>
+    <p class="muted" style="margin-bottom:14px">Four games built on the NESA “students learn about” dot points. Know where every dot point lives and half the exam is already written.</p>
+    <div class="card"><div class="statgrid" id="sylStats"></div></div>
+    <div class="card">
+      <h2>Pick a game</h2>
+      <div class="menu" id="sylGameBtns"></div>
+    </div>
+    <div class="card">
+      <h2>Topics</h2>
+      <div class="row" id="sylTopicBtns"></div>
+      <p class="muted" id="sylTopicNote" style="margin-top:8px"></p>
+      <h2 style="margin-top:18px">Rounds</h2>
+      <div class="row" id="sylLenBtns"></div>
+    </div>
+    <div class="card">
+      <h2>Your shakiest subtopics</h2>
+      <div id="sylWeak"></div>
+    </div>
+    <div class="center" style="padding-bottom:30px">
+      <button class="btn primary" style="font-size:1.15rem; padding:16px 44px" onclick="startSyl()">Start drill 🧠</button>
+    </div>
+  </div>
+
+  <div id="scr-syl" class="screen">
+    <div class="topbar">
+      <span class="chip" id="sylTitle"></span>
+      <span class="chip" id="sylCounter"></span>
+      <span class="streak" id="sylStreak" style="display:none"></span>
+      <button class="btn small ghost" onclick="quitSyl()">Quit</button>
+    </div>
+    <div class="pbar" style="margin-bottom:14px"><div id="sylProgress" style="width:0"></div></div>
+    <div class="card">
+      <p class="muted" id="sylLead" style="margin-bottom:12px"></p>
+      <div id="sylPrompt"></div>
+      <div class="sylopts" id="sylOpts"></div>
+      <div id="sylCheckWrap" style="margin-top:14px; display:none">
+        <button class="btn primary" id="sylCheckBtn" onclick="sylCheck()" disabled>Check my picks</button>
+      </div>
+      <div class="feedback" id="sylFeedback">
+        <div class="fh" id="sylFbHead"></div>
+        <div id="sylFbBody" style="line-height:1.6; font-size:.94rem"></div>
+        <div class="center" style="margin-top:14px">
+          <button class="btn primary" id="sylNextBtn" onclick="sylNext()">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="scr-sylresult" class="screen">
+    <div class="card center" style="padding:30px">
+      <div class="confetti" id="sylResEmoji"></div>
+      <div class="bigscore" id="sylResScore"></div>
+      <div class="muted" id="sylResSub"></div>
+      <div id="sylResXp" style="margin-top:10px; font-weight:700; color:var(--accent2)"></div>
+      <div id="sylResBadges"></div>
+    </div>
+    <div class="card" id="sylResSubs"></div>
+    <div class="center row" style="justify-content:center; padding-bottom:30px">
+      <button class="btn primary" onclick="showSyl()">Drill again</button>
+      <button class="btn" onclick="renderHome();go('home')">Home</button>
+    </div>
+  </div>
 </div>
 
 <script src="config.js"></script>
 <script src="data.js"></script>
 <script src="data-sa.js"></script>
+<script src="glossary.js"></script>
+<script src="chains.js"></script>
+<script src="diagrams.js"></script>
+<script src="syllabus-content.js"></script>
 <script src="store.js"></script>
 <script>
 "use strict";
@@ -763,6 +1219,32 @@ function renderHome(){
   $('survDesc').textContent = sv && sv.best ? 'Best run: ' + sv.best + ' in a row' : 'One wrong answer ends the run';
   const pr = me.peer;
   $('peerDesc').textContent = pr && pr.count ? pr.exact + ' spot on out of ' + pr.count + ' marked' : "Mark a classmate's answer";
+  const sy = me.syl;
+  $('sylDesc').textContent = sy && sy.rounds
+    ? Math.round(sy.correct/sy.rounds*100) + '% over ' + sy.rounds + ' dot-point rounds'
+    : 'Learn the dot points by heart';
+
+  // concept library / matching / flashcards / definitions / chains / diagrams
+  me.terms = me.terms || {};
+  const termIds = Object.keys(me.terms);
+  $('matchDesc').textContent = termIds.length
+    ? termIds.length + ' of ' + GLOSSARY.length + ' terms practised'
+    : 'Pair terms with definitions';
+  const dueNow = dueTerms();
+  $('flashDesc').textContent = dueNow.due.length
+    ? '🔴 ' + dueNow.due.length + ' card' + (dueNow.due.length===1?'':'s') + ' due for review'
+    : dueNow.fresh.length < GLOSSARY.length
+      ? 'All caught up · ' + dueNow.fresh.length + ' new cards left'
+      : 'Spaced repetition on key terms';
+  $('defDesc').textContent = 'Multiple choice on ' + GLOSSARY.length + ' terms';
+  const mapPool = QUESTIONS.filter(q => q.subs && q.subs.length).length +
+    (typeof SA_QUESTIONS !== 'undefined' ? SA_QUESTIONS.filter(q => q.subs && q.subs.length).length : 0);
+  $('mapDesc').textContent = mapPool + ' tagged HSC questions to place';
+  $('chainDesc').textContent = CHAINS.length + ' cause-and-effect chains';
+  const dgDone = Object.keys(me.diagrams || {}).length;
+  $('diagDesc').textContent = dgDone
+    ? dgDone + ' of ' + DIAGRAMS.length + ' diagrams attempted'
+    : DIAGRAMS.length + ' key HSC diagrams';
   refreshDuelBadge();
   refreshAnswerBadge();
 }
@@ -1006,9 +1488,18 @@ function commitAttempt(attempt, answers, xpGain, bestStreak){
   }
   const t = me.totals;
   t.answered += attempt.n; t.correct += attempt.c;
+  // perTopic is the blended figure My Progress and the teacher dashboard report on.
+  // perTopicQ counts exam questions only, so the topic-mastery badges can't be
+  // farmed through the (much easier) concept modes.
+  t.perTopicQ = t.perTopicQ || {};
+  const countsAsExam = !isConceptMode(attempt.mode);
   for (const [topic, [c, tot]] of Object.entries(attempt.topics)) {
     const p = t.perTopic[topic] = t.perTopic[topic] || [0,0];
     p[0] += c; p[1] += tot;
+    if (countsAsExam) {
+      const q = t.perTopicQ[topic] = t.perTopicQ[topic] || [0,0];
+      q[0] += c; q[1] += tot;
+    }
   }
   for (const [key, [c, tot]] of Object.entries(attempt.subs)) {
     const p = t.perSub[key] = t.perSub[key] || [0,0];
@@ -1099,6 +1590,8 @@ function renderResult(attempt, newBadges, duelInfo){
       (quiz.bestStreak >= 3 ? ' · best streak ' + quiz.bestStreak + ' 🔥' : '');
   }
 
+  $('resAgainBtn').textContent = 'Play again';
+  $('resAgainBtn').onclick = () => showSetup('quiz');
   $('resXp').textContent = quiz.xp ? '+' + quiz.xp + ' XP earned' + (quiz.bonus ? ' (includes +' + quiz.bonus + ' bonus)' : '') : '';
   $('resBadges').innerHTML = newBadges.map(b =>
     `<div class="newbadge"><span style="font-size:1.6rem">${b.emoji}</span><div style="text-align:left"><b>Badge unlocked: ${b.name}</b><div class="muted">${b.desc}</div></div></div>`).join('');
@@ -1490,6 +1983,20 @@ function showProgress(){
     const [topic, sub] = s.k.split('|');
     return `<div class="topicrow"><span class="tl" style="width:230px">${sub} <span class="muted">(${topic})</span></span><div class="tbar"><div style="width:${s.acc*100}%; background:${s.acc<.5?'var(--bad)':s.acc<.75?'var(--gold)':'var(--good)'}"></div></div><span class="muted" style="width:52px; text-align:right">${s.v[0]}/${s.v[1]}</span></div>`;
   }).join('') : '<p class="muted">Answer a few more questions to reveal your weak spots.</p>';
+  // syllabus drills — recall by game, kept apart from multiple-choice accuracy
+  const sy = me.syl;
+  if (sy && sy.rounds) {
+    $('progSylCard').style.display = 'block';
+    let sylH = `<p class="muted" style="margin-bottom:10px">${sy.correct}/${sy.rounds} rounds right (${Math.round(sy.correct/sy.rounds*100)}%) across ${sy.plays} drill${sy.plays===1?'':'s'}.</p>`;
+    for (const [gid, g] of Object.entries(SYL_GAMES)) {
+      const p = (sy.perGame || {})[gid];
+      const pct = p && p[1] ? Math.round(p[0]/p[1]*100) : 0;
+      sylH += `<div class="topicrow"><span class="tl" style="width:190px">${g.emoji} ${g.name}</span>
+        <div class="tbar"><div style="width:${pct}%; background:${pct<50?'var(--bad)':pct<75?'var(--gold)':'var(--good)'}"></div></div>
+        <span class="muted" style="width:90px; text-align:right">${p && p[1] ? pct + '% (' + p[0] + '/' + p[1] + ')' : 'not yet'}</span></div>`;
+    }
+    $('progSyl').innerHTML = sylH;
+  } else $('progSylCard').style.display = 'none';
   // badges
   $('progBadges').innerHTML = BADGES.map(b =>
     `<div class="badge ${me.badges.includes(b.id)?'on':''}"><div class="be">${b.emoji}</div><div class="bn">${b.name}</div><div class="bd">${b.desc}</div></div>`).join('');
@@ -1584,8 +2091,9 @@ function showSAQuestion(){
   updateSAWordCount();
   // rough guide: HSC markers expect roughly a paragraph per two marks
   $('saGuide').textContent = 'guide: about ' + (q.marks * 35) + '–' + (q.marks * 55) + ' words';
-  $('saHintVerb').textContent = q.criteria
-    ? 'The marking guideline for the top band says:\n\n' + (q.criteria.split('\n')[0] || q.criteria).slice(0, 300)
+  const topBand = parseCriteria(q.criteria, q.marks).find(r => r.mark != null);
+  $('saHintVerb').textContent = topBand
+    ? 'To earn full marks (' + topBand.markLabel + '), the guideline expects:\n\n' + topBand.text
     : 'Answer the verb in the question directly, and use business terminology.';
   if (sa.submitted > 0) {
     $('saMarksSoFar').style.display = 'inline-block';
@@ -1622,7 +2130,7 @@ async function saSubmitTyped(){
     sa.results.push({id: q.id, label: resp.label, max: q.marks, responseId: resp.id});
     $('saFbXp').textContent = '+' + SA_SUBMIT_XP + ' XP for handing in';
     $('saFbText').textContent = 'Your teacher will mark this against the official NESA criteria. You\'ll see your mark and feedback in "My answers" once they have.';
-    let rev = `<details class="rev"><summary>Official NESA marking criteria</summary><pre>${esc(q.criteria)}</pre></details>`;
+    let rev = `<details class="rev"><summary>Official NESA marking criteria</summary>${criteriaTableHTML(q.criteria, q.marks)}</details>`;
     if (q.sample) rev += `<details class="rev"><summary>Sample answer</summary><pre>${esc(q.sample)}</pre></details>`;
     $('saFbReveals').innerHTML = rev;
     $('saNextBtn').textContent = sa.i === sa.qs.length - 1 ? 'Finish →' : 'Next →';
@@ -1746,7 +2254,7 @@ function showPeerItem(){
   $('peerMarkChip').textContent = r.max + (r.max === 1 ? ' mark' : ' marks');
   $('peerImg').src = q ? q.img : '';
   $('peerAnswer').textContent = r.typed;
-  $('peerCriteria').textContent = q ? q.criteria : 'Criteria unavailable.';
+  $('peerCriteria').innerHTML = q ? criteriaTableHTML(q.criteria, r.max) : '<p class="muted">Criteria unavailable.</p>';
   $('peerSample').textContent = q && q.sample ? q.sample : 'No sample answer available for this question.';
   $('peerMarkBtns').innerHTML = Array.from({length: r.max + 1}, (_, m) =>
     `<button class="btn" onclick="peerSubmit(${m})">${m}</button>`).join('');
@@ -1783,7 +2291,7 @@ async function peerSubmit(mark){
   const q = SA_QUESTIONS.find(x => x.id === r.qid);
   let rev = '';
   if (q) {
-    rev += `<details class="rev"><summary>Official NESA marking criteria</summary><pre>${esc(q.criteria)}</pre></details>`;
+    rev += `<details class="rev"><summary>Official NESA marking criteria</summary>${criteriaTableHTML(q.criteria, r.max)}</details>`;
     if (q.sample) rev += `<details class="rev"><summary>Sample answer</summary><pre>${esc(q.sample)}</pre></details>`;
   }
   $('peerFbReveals').innerHTML = rev;
@@ -1829,6 +2337,946 @@ async function finishPeer(){
   peer = null;
   go('peerresult');
 }
+
+
+// Per-term practice record, written by Matching, Flashcards and the Definition
+// Quiz. Used to weight "favour terms I've missed" and to schedule flashcards.
+function termStats(id){ return (me && me.terms && me.terms[id]) || null; }
+
+// ================= MATCHING =================
+// Pairs terms with definitions. Each term counts as one "question": matched on
+// the first try = correct. Results are written through commitAttempt in the same
+// {n, c, topics, subs} shape as every other mode, so XP, badges, My Progress and
+// the teacher's topic analysis all pick it up with no extra plumbing.
+let msel = { pairs: 6, rounds: 3, topics: new Set(), subs: new Set() };
+let mt = null;          // active matching session
+let mTick = null;
+const MATCH_SECONDS = 60;
+
+function showMatchSetup(){
+  if (!$('matchTopicBtns').children.length) {
+    $('matchTopicBtns').innerHTML = Object.keys(SYLLABUS).map(t =>
+      `<button class="btn topicbtn mtopic" data-t="${t}">${t}</button>`).join('');
+    document.querySelectorAll('.mtopic').forEach(b => b.addEventListener('click', () => {
+      const t = b.dataset.t;
+      if (msel.topics.has(t)) { msel.topics.delete(t); b.classList.remove('sel'); }
+      else { msel.topics.add(t); b.classList.add('sel'); }
+      renderMatchSubs(); updateMatchPool();
+    }));
+    document.querySelectorAll('[data-mn]').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('[data-mn]').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel'); msel.pairs = +b.dataset.mn; updateMatchPool();
+    }));
+    document.querySelectorAll('[data-mr]').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('[data-mr]').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel'); msel.rounds = +b.dataset.mr; updateMatchPool();
+    }));
+  }
+  updateMatchPool();
+  go('matchsetup');
+}
+function renderMatchSubs(){
+  if (!msel.topics.size) { $('matchSubWrap').style.display='none'; msel.subs.clear(); return; }
+  $('matchSubWrap').style.display = 'block';
+  let html = '';
+  for (const t of msel.topics) {
+    for (const s of SYLLABUS[t]) {
+      const key = t + '|' + s;
+      html += `<label class="opt"><input type="checkbox" data-k="${key}" ${msel.subs.has(key)?'checked':''} onchange="toggleMatchSub(this)"> <span style="color:${TOPIC_COLORS[t]}">●</span> ${esc(s)} <span class="muted">(${t})</span></label>`;
+    }
+  }
+  $('matchSubList').innerHTML = html;
+  [...msel.subs].forEach(k => { if (!msel.topics.has(k.split('|')[0])) msel.subs.delete(k); });
+}
+function toggleMatchSub(cb){ cb.checked ? msel.subs.add(cb.dataset.k) : msel.subs.delete(cb.dataset.k); updateMatchPool(); }
+function matchPool(){
+  return GLOSSARY.filter(g => {
+    if (msel.topics.size && !msel.topics.has(g.topic)) return false;
+    if (msel.subs.size && !msel.subs.has(g.topic + '|' + g.sub)) return false;
+    return true;
+  });
+}
+function updateMatchPool(){
+  const pool = matchPool(), need = msel.pairs * msel.rounds;
+  $('matchPoolInfo').textContent = pool.length + ' terms available · ' + need + ' will be used' +
+    (pool.length < need ? ' (terms will repeat)' : '');
+}
+
+// Definitions must be distinguishable, so a round is drawn from one sub-topic
+// where possible — matching "Tariff" against four unrelated definitions is too easy.
+function buildRounds(pool){
+  const weak = $('matchWeak') && $('matchWeak').checked;
+  const score = g => {
+    const s = termStats(g.id);
+    if (!s || !s.seen) return weak ? 1 : 0;
+    return weak ? 2 + (s.miss / s.seen) * 3 : 0;
+  };
+  const bySub = {};
+  for (const g of pool) (bySub[g.topic + '|' + g.sub] = bySub[g.topic + '|' + g.sub] || []).push(g);
+  const rounds = [];
+  let leftovers = [];
+  const keys = shuffleArr(Object.keys(bySub));
+  for (const k of keys) {
+    const group = shuffleArr(bySub[k]).sort((a,b) => score(b) - score(a));
+    while (group.length >= msel.pairs && rounds.length < msel.rounds) rounds.push(group.splice(0, msel.pairs));
+    leftovers.push(...group);
+  }
+  leftovers = shuffleArr(leftovers).sort((a,b) => score(b) - score(a));
+  while (rounds.length < msel.rounds) {
+    if (leftovers.length >= msel.pairs) rounds.push(leftovers.splice(0, msel.pairs));
+    else if (pool.length >= msel.pairs) rounds.push(shuffleArr([...pool]).slice(0, msel.pairs));
+    else break;
+  }
+  return rounds.slice(0, msel.rounds);
+}
+function shuffleArr(a){ const r = [...a]; for (let i = r.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [r[i],r[j]] = [r[j],r[i]]; } return r; }
+
+function startMatching(){
+  const pool = matchPool();
+  if (pool.length < msel.pairs) { alert('Pick at least ' + msel.pairs + ' terms worth of topics.'); return; }
+  const rounds = buildRounds(pool);
+  if (!rounds.length) return;
+  me.terms = me.terms || {};
+  mt = {
+    rounds, r: -1, t0: Date.now(),
+    timed: $('matchTimed').checked,
+    correct: 0, total: 0, xp: 0, streak: 0, bestStreak: 0,
+    topics: {}, subs: {}, results: [], sel: null, locked: 0
+  };
+  go('match');
+  matchNextRound();
+}
+function matchNextRound(){
+  clearInterval(mTick);
+  mt.r++;
+  if (mt.r >= mt.rounds.length) { finishMatching(); return; }
+  const round = mt.rounds[mt.r];
+  mt.locked = 0; mt.sel = null; mt.tries = {};
+  $('matchNextWrap').style.display = 'none';
+  $('matchRound').textContent = 'Round ' + (mt.r+1) + ' / ' + mt.rounds.length;
+  $('matchProg').style.width = (mt.r / mt.rounds.length * 100) + '%';
+
+  $('matchTerms').innerHTML = shuffleArr(round).map(g =>
+    `<button class="mcard term" data-id="${g.id}" data-side="t" onclick="matchTap(this)">${esc(g.term)}</button>`).join('');
+  $('matchDefs').innerHTML = shuffleArr(round).map(g =>
+    `<button class="mcard" data-id="${g.id}" data-side="d" onclick="matchTap(this)">${esc(g.def)}</button>`).join('');
+
+  if (mt.timed) {
+    $('matchTimer').style.display = 'inline';
+    let left = MATCH_SECONDS;
+    const paint = () => {
+      $('matchTimer').textContent = left + 's';
+      $('matchTimer').classList.toggle('low', left <= 10);
+    };
+    paint();
+    mTick = setInterval(() => {
+      left--; paint();
+      if (left <= 0) { clearInterval(mTick); timeoutRound(); }
+    }, 1000);
+  } else $('matchTimer').style.display = 'none';
+}
+function matchTap(el){
+  if (el.classList.contains('hit')) return;
+  const prev = mt.sel;
+  if (prev === el) { el.classList.remove('sel'); mt.sel = null; return; }
+  // first tap, or tapping another card on the same side: just move the selection
+  if (!prev || prev.dataset.side === el.dataset.side) {
+    if (prev) prev.classList.remove('sel');
+    el.classList.add('sel'); mt.sel = el; return;
+  }
+  const id = el.dataset.id;
+  if (prev.dataset.id === id) {
+    prev.classList.remove('sel');
+    prev.classList.add('hit'); el.classList.add('hit');
+    mt.sel = null; mt.locked++;
+    scoreTerm(id, !mt.tries[id]);
+    if (mt.locked === mt.rounds[mt.r].length) roundComplete();
+  } else {
+    // wrong pair — the term is now marked as missed, but stays in play
+    const termId = prev.dataset.side === 't' ? prev.dataset.id : id;
+    mt.tries[termId] = (mt.tries[termId] || 0) + 1;
+    mt.streak = 0;
+    const a = prev, b = el;
+    a.classList.remove('sel'); a.classList.add('miss'); b.classList.add('miss');
+    mt.sel = null;
+    setTimeout(() => { a.classList.remove('miss'); b.classList.remove('miss'); }, 380);
+  }
+}
+function scoreTerm(id, firstTry){
+  const g = GLOSSARY.find(x => x.id === id);
+  mt.total++;
+  const tp = mt.topics[g.topic] = mt.topics[g.topic] || [0,0];
+  const sk = g.topic + '|' + g.sub;
+  const sp = mt.subs[sk] = mt.subs[sk] || [0,0];
+  tp[1]++; sp[1]++;
+  if (firstTry) {
+    mt.correct++; tp[0]++; sp[0]++;
+    mt.streak++; mt.bestStreak = Math.max(mt.bestStreak, mt.streak);
+    mt.xp += (typeof QUIZ_OPTIONS !== 'undefined' && QUIZ_OPTIONS.xpPerMatch != null ? QUIZ_OPTIONS.xpPerMatch : 5);
+  } else mt.streak = 0;
+  const rec = me.terms[id] = me.terms[id] || {seen:0, miss:0, last:0};
+  rec.seen++; rec.last = Date.now();
+  if (!firstTry) rec.miss++;
+  mt.results.push({id, term: g.term, firstTry, tries: (mt.tries[id] || 0) + 1});
+}
+// time ran out: everything still unmatched is scored as missed and revealed
+function timeoutRound(){
+  document.querySelectorAll('#matchTerms .mcard').forEach(el => {
+    if (!el.classList.contains('hit')) {
+      mt.tries[el.dataset.id] = (mt.tries[el.dataset.id] || 0) + 1;
+      scoreTerm(el.dataset.id, false);
+      el.classList.add('miss');
+    }
+  });
+  revealRound();
+}
+function roundComplete(){
+  clearInterval(mTick);
+  setTimeout(revealRound, 450);
+}
+function revealRound(){
+  clearInterval(mTick);
+  document.querySelectorAll('#matchTerms .mcard, #matchDefs .mcard').forEach(el => {
+    el.classList.add('done'); el.onclick = null;
+  });
+  $('matchNextWrap').style.display = 'block';
+  $('matchNextBtn').textContent = (mt.r + 1 >= mt.rounds.length) ? 'See results →' : 'Next round →';
+}
+function quitMatching(){
+  if (confirm('Quit matching? This round will not be saved.')) {
+    clearInterval(mTick); mt = null; renderHome(); go('home');
+  }
+}
+async function finishMatching(){
+  clearInterval(mTick);
+  const timeSec = Math.round((Date.now() - mt.t0)/1000);
+  const attempt = {
+    d: Date.now(), n: mt.total, c: mt.correct, timeSec,
+    timed: mt.timed, mode: 'matching', topics: mt.topics, subs: mt.subs
+  };
+  if (mt.total && mt.correct === mt.total) mt.bonus = 25; else mt.bonus = 0;
+  mt.xp += mt.bonus;
+  // answers array is empty on purpose: My Mistakes is a bank of past HSC
+  // questions, and glossary ids must never leak into me.wrong / me.seen.
+  // bestStreak is passed as 0 as well — the streak badges are meant to reward
+  // consecutive exam questions, and matching pairs are a much easier win.
+  const newBadges = commitAttempt(attempt, [], mt.xp, 0);
+  await Store.saveStudent(me.name, me);
+
+  const missed = mt.results.filter(r => !r.firstTry);
+  const pct = attempt.n ? Math.round(attempt.c / attempt.n * 100) : 0;
+  $('resEmoji').textContent = pct === 100 ? '🔗🏆' : pct >= 80 ? '🔗🎉' : pct >= 60 ? '🔗💪' : '🔗📚';
+  $('resScore').textContent = attempt.c + ' / ' + attempt.n;
+  $('resSub').textContent = pct + '% matched first try · ' + fmtTime(timeSec) +
+    (mt.bestStreak >= 3 ? ' · best streak ' + mt.bestStreak + ' 🔥' : '');
+  $('resXp').textContent = mt.xp ? '+' + mt.xp + ' XP earned' + (mt.bonus ? ' (includes +' + mt.bonus + ' clean sweep bonus)' : '') : '';
+  $('resBadges').innerHTML = newBadges.map(b =>
+    `<div class="newbadge"><span style="font-size:1.6rem">${b.emoji}</span><div style="text-align:left"><b>Badge unlocked: ${b.name}</b><div class="muted">${b.desc}</div></div></div>`).join('');
+
+  let html = '<h2>Topic breakdown</h2>';
+  for (const [topic, [c, tot]] of Object.entries(attempt.topics)) {
+    html += `<div class="topicrow"><span class="tl">${topic}</span><div class="tbar"><div style="width:${tot?c/tot*100:0}%; background:${TOPIC_COLORS[topic]}"></div></div><span class="muted" style="width:52px; text-align:right">${c}/${tot}</span></div>`;
+  }
+  if (missed.length) {
+    html += '<h2 style="margin-top:18px">Worth another look</h2>' + missed.map(r => {
+      const g = GLOSSARY.find(x => x.id === r.id);
+      return `<div class="mrevrow"><span class="mk">📌</span><span><b>${esc(g.term)}</b> — ${esc(g.def)}</span></div>`;
+    }).join('');
+  } else {
+    html += '<p class="muted" style="margin-top:18px">Every pair on the first try. Nothing to revise. 🎯</p>';
+  }
+  $('resTopics').innerHTML = html;
+  $('resAgainBtn').textContent = 'Match again';
+  $('resAgainBtn').onclick = () => showMatchSetup();
+  mt = null;
+  go('result');
+}
+
+// ---- shared helper: finish any glossary/concept mode through the normal pipeline ----
+// Keeps XP, badges, My Progress and the teacher's topic analysis consistent, while
+// never letting glossary/chain/diagram ids reach me.wrong or me.seen (My Mistakes
+// is strictly a bank of past HSC questions).
+async function finishConceptMode(o){
+  const attempt = {
+    d: Date.now(), n: o.n, c: o.c, timeSec: o.timeSec, timed: !!o.timed,
+    mode: o.mode, topics: o.topics, subs: o.subs
+  };
+  // lifetime per-mode counts drive the cumulative badges (Card Shark, Chain Reaction)
+  me.conceptTotals = me.conceptTotals || {};
+  me.conceptTotals[o.mode] = (me.conceptTotals[o.mode] || 0) + (o.mode === 'chains' ? o.c : o.n);
+  const newBadges = commitAttempt(attempt, [], o.xp, 0);
+  await Store.saveStudent(me.name, me);
+  const pct = attempt.n ? Math.round(attempt.c / attempt.n * 100) : 0;
+  $('resEmoji').textContent = o.emoji(pct);
+  $('resScore').textContent = o.scoreText || (attempt.c + ' / ' + attempt.n);
+  $('resSub').textContent = o.subText;
+  $('resXp').textContent = o.xp ? '+' + o.xp + ' XP earned' + (o.bonus ? ' (includes +' + o.bonus + ' bonus)' : '') : '';
+  $('resBadges').innerHTML = newBadges.map(b =>
+    `<div class="newbadge"><span style="font-size:1.6rem">${b.emoji}</span><div style="text-align:left"><b>Badge unlocked: ${b.name}</b><div class="muted">${b.desc}</div></div></div>`).join('');
+  let html = '<h2>Topic breakdown</h2>';
+  for (const [topic, [c, tot]] of Object.entries(attempt.topics)) {
+    html += `<div class="topicrow"><span class="tl">${topic}</span><div class="tbar"><div style="width:${tot?c/tot*100:0}%; background:${TOPIC_COLORS[topic]}"></div></div><span class="muted" style="width:52px; text-align:right">${c}/${tot}</span></div>`;
+  }
+  html += o.reviewHtml || '';
+  $('resTopics').innerHTML = html;
+  $('resAgainBtn').textContent = o.againLabel;
+  $('resAgainBtn').onclick = o.again;
+  go('result');
+  return newBadges;
+}
+// record a glossary term's outcome and keep its scheduling data alive
+function trackTerm(id, right){
+  me.terms = me.terms || {};
+  const rec = me.terms[id] = me.terms[id] || {seen:0, miss:0, last:0, ease:2.5, ivl:0, due:0};
+  rec.seen++; rec.last = Date.now();
+  if (!right) rec.miss++;
+  return rec;
+}
+function tallyInto(topics, subs, topic, sub, right){
+  const tp = topics[topic] = topics[topic] || [0,0];
+  const sk = topic + '|' + sub;
+  const sp = subs[sk] = subs[sk] || [0,0];
+  tp[1]++; sp[1]++;
+  if (right) { tp[0]++; sp[0]++; }
+}
+// generic topic-filter button strip used by the concept setup screens
+function buildTopicStrip(hostId, set, onChange){
+  if ($(hostId).children.length) return;
+  $(hostId).innerHTML = Object.keys(SYLLABUS).map(t =>
+    `<button class="btn topicbtn" data-t="${t}">${t}</button>`).join('');
+  [...$(hostId).children].forEach(b => b.addEventListener('click', () => {
+    const t = b.dataset.t;
+    if (set.has(t)) { set.delete(t); b.classList.remove('sel'); }
+    else { set.add(t); b.classList.add('sel'); }
+    onChange();
+  }));
+}
+
+// ================= FLASHCARDS (spaced repetition) =================
+// A light SM-2: each term carries an ease factor and an interval in days.
+// Rating a card schedules its next appearance, so the deck self-prioritises.
+const FLASH_SESSION = 20;
+let fl = null;
+
+function termSched(id){
+  const r = (me.terms && me.terms[id]) || null;
+  return r ? {ease: r.ease ?? 2.5, ivl: r.ivl ?? 0, due: r.due ?? 0, seen: r.seen || 0} : null;
+}
+function dueTerms(){
+  const now = Date.now();
+  const due = [], fresh = [];
+  for (const g of GLOSSARY) {
+    const s = termSched(g.id);
+    if (!s || !s.seen) fresh.push(g);
+    else if ((s.due || 0) <= now) due.push(g);
+  }
+  due.sort((a,b) => (termSched(a.id).due || 0) - (termSched(b.id).due || 0));
+  return {due, fresh};
+}
+function showFlash(){
+  const {due, fresh} = dueTerms();
+  const total = Math.min(FLASH_SESSION, due.length + fresh.length);
+  $('flashIntroCard').innerHTML = `<div class="statgrid">
+      ${stat(due.length, 'Due for review')}
+      ${stat(fresh.length, 'Not seen yet')}
+      ${stat(GLOSSARY.length - fresh.length, 'In your deck')}
+    </div>
+    <p class="muted" style="margin-top:12px">${total
+      ? 'This session will show ' + total + ' card' + (total===1?'':'s') + ' — due cards first, then new ones.'
+      : 'Nothing is due right now. Come back tomorrow, or review anyway to get ahead.'}</p>`;
+  $('flashStartBtn').textContent = total ? 'Start reviewing 🎴' : 'Review ahead anyway 🎴';
+  go('flashintro');
+}
+function startFlash(){
+  const {due, fresh} = dueTerms();
+  let deck = [...due, ...shuffleArr(fresh)].slice(0, FLASH_SESSION);
+  if (!deck.length) deck = shuffleArr([...GLOSSARY]).slice(0, FLASH_SESSION);
+  me.terms = me.terms || {};
+  fl = {deck, i: 0, t0: Date.now(), good: 0, xp: 0, topics: {}, subs: {}, results: [], flipped: false};
+  go('flash');
+  showFlashCard();
+}
+function showFlashCard(){
+  if (fl.i >= fl.deck.length) { finishFlash(); return; }
+  const g = fl.deck[fl.i];
+  fl.flipped = false;
+  $('flashCount').textContent = 'Card ' + (fl.i+1) + ' / ' + fl.deck.length;
+  $('flashProg').style.width = (fl.i / fl.deck.length * 100) + '%';
+  $('flashRate').style.display = 'none';
+  $('flashFlipHint').style.display = 'block';
+  const s = termSched(g.id);
+  $('flashCard').innerHTML = `<div class="ft">${esc(g.term)}</div>
+    <div class="fh">${esc(g.sub)}${s && s.seen ? ' · seen ' + s.seen + '×' : ' · new card'}</div>`;
+}
+function flipFlash(){
+  if (fl.flipped) return;
+  fl.flipped = true;
+  const g = fl.deck[fl.i];
+  $('flashCard').innerHTML = `<div class="ft" style="font-size:1.15rem">${esc(g.term)}</div>
+    <div class="fd">${esc(g.def)}</div>
+    ${g.formula ? `<div class="ff">${esc(g.formula)}</div>` : ''}
+    ${g.eg ? `<div class="fh" style="text-transform:none; letter-spacing:0; font-size:.85rem">💡 ${esc(g.eg)}</div>` : ''}`;
+  const s = termSched(g.id) || {ease:2.5, ivl:0};
+  $('rlAgain').textContent = 'today';
+  $('rlHard').textContent  = fmtIvl(Math.max(1, (s.ivl || 1) * 1.2));
+  $('rlGood').textContent  = fmtIvl(s.ivl ? s.ivl * s.ease : 1);
+  $('rlEasy').textContent  = fmtIvl((s.ivl ? s.ivl * s.ease : 2) * 1.3);
+  $('flashRate').style.display = 'block';
+  $('flashFlipHint').style.display = 'none';
+}
+function fmtIvl(d){ d = Math.round(d); return d >= 30 ? Math.round(d/30) + 'mo' : d >= 1 ? d + 'd' : '<1d'; }
+function rateFlash(q){
+  const g = fl.deck[fl.i];
+  const right = q >= 2;
+  const rec = trackTerm(g.id, right);
+  rec.ease = rec.ease ?? 2.5;
+  rec.ivl  = rec.ivl ?? 0;
+  if (q === 0)      { rec.ease = Math.max(1.3, rec.ease - 0.20); rec.ivl = 0; }
+  else if (q === 1) { rec.ease = Math.max(1.3, rec.ease - 0.15); rec.ivl = Math.max(1, (rec.ivl || 1) * 1.2); }
+  else if (q === 2) { rec.ivl = rec.ivl ? rec.ivl * rec.ease : 1; }
+  else              { rec.ease = Math.min(3.0, rec.ease + 0.15); rec.ivl = (rec.ivl ? rec.ivl * rec.ease : 2) * 1.3; }
+  rec.due = Date.now() + rec.ivl * 86400000;
+  tallyInto(fl.topics, fl.subs, g.topic, g.sub, right);
+  if (right) { fl.good++; fl.xp += 2; }
+  fl.results.push({id: g.id, term: g.term, q});
+  // "Again" cards come back at the end of the same session
+  if (q === 0 && fl.deck.length < FLASH_SESSION + 8) fl.deck.push(g);
+  fl.i++;
+  showFlashCard();
+}
+function quitFlash(){
+  if (fl && fl.i > 0) finishFlash();
+  else { fl = null; renderHome(); go('home'); }
+}
+async function finishFlash(){
+  const timeSec = Math.round((Date.now() - fl.t0)/1000);
+  const n = fl.i, c = fl.good;
+  const again = fl.results.filter(r => r.q === 0);
+  await finishConceptMode({
+    mode: 'flashcards', n, c, timeSec, xp: fl.xp, topics: fl.topics, subs: fl.subs,
+    emoji: p => p >= 90 ? '🎴🏆' : p >= 70 ? '🎴🎉' : p >= 50 ? '🎴💪' : '🎴📚',
+    scoreText: c + ' / ' + n,
+    subText: 'recalled without help · ' + fmtTime(timeSec) + ' · self-rated',
+    reviewHtml: again.length
+      ? '<h2 style="margin-top:18px">Coming back soon</h2>' + again.map(r =>
+          `<div class="mrevrow"><span class="mk">🔁</span><span>${esc(r.term)}</span></div>`).join('')
+      : '<p class="muted" style="margin-top:18px">Nothing marked <b>Again</b> — the whole session is scheduled forward. 🎯</p>',
+    againLabel: 'Review more', again: () => showFlash()
+  });
+  fl = null;
+}
+
+// ================= DEFINITION QUIZ =================
+// Auto-generated MC. Distractors are drawn from the same sub-topic first, so the
+// wrong options are plausible rather than obviously unrelated.
+let dsel = { n: 10, topics: new Set() };
+let dq = null;
+
+function showDefSetup(){
+  buildTopicStrip('defTopicBtns', dsel.topics, updateDefPool);
+  if (!$('defTopicBtns').dataset.wired) {
+    $('defTopicBtns').dataset.wired = '1';
+    document.querySelectorAll('[data-dn]').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('[data-dn]').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel'); dsel.n = +b.dataset.dn; updateDefPool();
+    }));
+  }
+  updateDefPool();
+  go('defsetup');
+}
+function defPool(){ return GLOSSARY.filter(g => !dsel.topics.size || dsel.topics.has(g.topic)); }
+function updateDefPool(){
+  const p = defPool();
+  $('defPoolInfo').textContent = p.length + ' terms available · ' + Math.min(dsel.n, p.length) + ' will be asked';
+}
+function buildDefQuestion(g, pool, reverse){
+  // distractors: same sub-topic, then same topic, then anywhere
+  const tiers = [
+    pool.filter(x => x.id !== g.id && x.sub === g.sub),
+    pool.filter(x => x.id !== g.id && x.topic === g.topic && x.sub !== g.sub),
+    GLOSSARY.filter(x => x.id !== g.id && x.topic !== g.topic)
+  ];
+  const picks = [];
+  for (const tier of tiers) {
+    for (const cand of shuffleArr(tier)) {
+      if (picks.length >= 3) break;
+      if (!picks.some(p => p.id === cand.id)) picks.push(cand);
+    }
+    if (picks.length >= 3) break;
+  }
+  const options = shuffleArr([g, ...picks]);
+  return {
+    term: g, reverse,
+    prompt: reverse ? 'Which term does this describe?' : 'What does this term mean?',
+    stem: reverse ? g.def : g.term,
+    options: options.map(o => ({id: o.id, text: reverse ? o.term : o.def, right: o.id === g.id}))
+  };
+}
+function startDefQuiz(){
+  const pool = defPool();
+  if (pool.length < 4) { alert('Pick at least one topic with four or more terms.'); return; }
+  const weak = $('defWeak').checked, mixReverse = $('defReverse').checked;
+  let ranked = shuffleArr(pool);
+  if (weak) ranked.sort((a,b) => {
+    const sa = me.terms && me.terms[a.id], sb = me.terms && me.terms[b.id];
+    const score = s => s && s.seen ? 1 + (s.miss / s.seen) * 3 : 1;
+    return score(sb) - score(sa);
+  });
+  const chosen = ranked.slice(0, Math.min(dsel.n, pool.length));
+  me.terms = me.terms || {};
+  dq = {
+    qs: chosen.map((g,i) => buildDefQuestion(g, pool, mixReverse && i % 2 === 1)),
+    i: 0, t0: Date.now(), correct: 0, xp: 0, streak: 0, bestStreak: 0,
+    topics: {}, subs: {}, results: [], answered: false
+  };
+  go('def');
+  showDefQuestion();
+}
+function showDefQuestion(){
+  if (dq.i >= dq.qs.length) { finishDefQuiz(); return; }
+  const q = dq.qs[dq.i];
+  dq.answered = false;
+  $('defCount').textContent = 'Q' + (dq.i+1) + ' / ' + dq.qs.length;
+  $('defProg').style.width = (dq.i / dq.qs.length * 100) + '%';
+  $('defStreak').textContent = dq.streak >= 3 ? '🔥 ' + dq.streak : '';
+  $('defPrompt').textContent = q.prompt;
+  $('defStem').textContent = q.stem;
+  $('defOptions').innerHTML = q.options.map((o,i) =>
+    `<button class="mcard" data-i="${i}" onclick="answerDef(${i})">${esc(o.text)}</button>`).join('');
+  $('defFb').style.display = 'none';
+}
+function answerDef(i){
+  if (dq.answered) return;
+  dq.answered = true;
+  const q = dq.qs[dq.i], picked = q.options[i], right = picked.right;
+  [...$('defOptions').children].forEach((el, j) => {
+    el.onclick = null;
+    if (q.options[j].right) el.classList.add('hit');
+    else if (j === i) el.classList.add('miss');
+    else el.classList.add('done');
+  });
+  trackTerm(q.term.id, right);
+  tallyInto(dq.topics, dq.subs, q.term.topic, q.term.sub, right);
+  if (right) {
+    dq.correct++; dq.streak++; dq.bestStreak = Math.max(dq.bestStreak, dq.streak);
+    dq.xp += (typeof QUIZ_OPTIONS !== 'undefined' && QUIZ_OPTIONS.xpPerMatch != null ? QUIZ_OPTIONS.xpPerMatch : 5);
+  } else dq.streak = 0;
+  dq.results.push({id: q.term.id, term: q.term.term, right});
+  const fb = $('defFb');
+  fb.className = 'feedback ' + (right ? 'good' : 'bad');
+  fb.style.display = 'block';
+  $('defFbHead').textContent = right ? '✅ Correct' : '❌ Not quite';
+  $('defFbBody').innerHTML = `<b>${esc(q.term.term)}</b> — ${esc(q.term.def)}` +
+    (q.term.formula ? `<div class="ff" style="margin-top:8px">${esc(q.term.formula)}</div>` : '') +
+    (q.term.eg ? `<div class="muted" style="margin-top:8px">💡 ${esc(q.term.eg)}</div>` : '');
+  $('defFbTags').innerHTML = `<span class="tag" style="color:${TOPIC_COLORS[q.term.topic]}">${q.term.topic}</span><span class="tag">${esc(q.term.sub)}</span>`;
+  $('defNextBtn').textContent = (dq.i + 1 >= dq.qs.length) ? 'See results →' : 'Next →';
+}
+function defNext(){ dq.i++; showDefQuestion(); }
+function quitDef(){
+  if (confirm('Quit this quiz? Progress on it will not be saved.')) { dq = null; renderHome(); go('home'); }
+}
+async function finishDefQuiz(){
+  const timeSec = Math.round((Date.now() - dq.t0)/1000);
+  const missed = dq.results.filter(r => !r.right);
+  const bonus = dq.correct === dq.qs.length && dq.qs.length >= 5 ? 20 : 0;
+  await finishConceptMode({
+    mode: 'defquiz', n: dq.qs.length, c: dq.correct, timeSec, xp: dq.xp + bonus, bonus,
+    topics: dq.topics, subs: dq.subs,
+    emoji: p => p === 100 ? '📖🏆' : p >= 80 ? '📖🎉' : p >= 60 ? '📖💪' : '📖📚',
+    subText: Math.round(dq.correct/dq.qs.length*100) + '% · ' + fmtTime(timeSec) +
+      (dq.bestStreak >= 3 ? ' · best streak ' + dq.bestStreak + ' 🔥' : ''),
+    reviewHtml: missed.length
+      ? '<h2 style="margin-top:18px">Worth another look</h2>' + missed.map(r => {
+          const g = GLOSSARY.find(x => x.id === r.id);
+          return `<div class="mrevrow"><span class="mk">📌</span><span><b>${esc(g.term)}</b> — ${esc(g.def)}</span></div>`;
+        }).join('')
+      : '<p class="muted" style="margin-top:18px">Full marks. Nothing to revise. 🎯</p>',
+    againLabel: 'Quiz again', again: () => showDefSetup()
+  });
+  dq = null;
+}
+
+// ================= CHAIN BUILDER =================
+// Steps are shuffled and must be tapped back into causal order. A chain counts as
+// correct only if it is rebuilt with no wrong taps.
+let csel = { n: 5, topics: new Set() };
+let ch = null;
+
+function showChainSetup(){
+  buildTopicStrip('chainTopicBtns', csel.topics, updateChainPool);
+  if (!$('chainTopicBtns').dataset.wired) {
+    $('chainTopicBtns').dataset.wired = '1';
+    document.querySelectorAll('[data-cn]').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('[data-cn]').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel'); csel.n = +b.dataset.cn; updateChainPool();
+    }));
+  }
+  updateChainPool();
+  go('chainsetup');
+}
+function chainPool(){ return CHAINS.filter(c => !csel.topics.size || csel.topics.has(c.topic)); }
+function updateChainPool(){
+  const p = chainPool();
+  $('chainPoolInfo').textContent = p.length + ' chains available · ' + Math.min(csel.n, p.length) + ' will be used';
+}
+function startChains(){
+  const pool = chainPool();
+  if (!pool.length) { alert('No chains in that selection.'); return; }
+  ch = {
+    list: shuffleArr(pool).slice(0, Math.min(csel.n, pool.length)),
+    i: -1, t0: Date.now(), correct: 0, xp: 0, topics: {}, subs: {}, results: []
+  };
+  go('chain');
+  chainNext();
+}
+function chainNext(){
+  ch.i++;
+  if (ch.i >= ch.list.length) { finishChains(); return; }
+  const c = ch.list[ch.i];
+  ch.placed = 0; ch.clean = true;
+  $('chainCount').textContent = 'Chain ' + (ch.i+1) + ' / ' + ch.list.length;
+  $('chainProg').style.width = (ch.i / ch.list.length * 100) + '%';
+  $('chainTitle').textContent = c.title;
+  $('chainTopic').innerHTML = `<span style="color:${TOPIC_COLORS[c.topic]}">●</span> ${esc(c.sub)}`;
+  $('chainSlots').innerHTML = c.steps.map((_, i) =>
+    `<div class="chainslot" id="cslot${i}"><span class="num">${i+1}</span><span class="txt"></span></div>`).join('');
+  $('chainPool').innerHTML = shuffleArr(c.steps.map((s, i) => ({s, i}))).map(o =>
+    `<button class="chainchip" data-i="${o.i}" onclick="chainTap(this)">${esc(o.s)}</button>`).join('');
+  $('chainPoolHead').style.display = 'block';
+  $('chainWhyWrap').style.display = 'none';
+}
+function chainTap(el){
+  const c = ch.list[ch.i], want = ch.placed, got = +el.dataset.i;
+  if (got !== want) {
+    ch.clean = false;
+    el.classList.add('miss');
+    setTimeout(() => el.classList.remove('miss'), 380);
+    return;
+  }
+  const slot = $('cslot' + want);
+  slot.classList.add('filled');
+  slot.querySelector('.txt').textContent = c.steps[want];
+  el.classList.add('used');
+  ch.placed++;
+  if (ch.placed === c.steps.length) chainComplete();
+}
+function chainComplete(){
+  const c = ch.list[ch.i];
+  tallyInto(ch.topics, ch.subs, c.topic, c.sub, ch.clean);
+  if (ch.clean) { ch.correct++; ch.xp += 15; }
+  ch.results.push({id: c.id, title: c.title, clean: ch.clean});
+  $('chainPoolHead').style.display = 'none';
+  $('chainWhy').innerHTML = (ch.clean ? '✅ <b>Built clean.</b> ' : '📌 <b>Rebuilt with help.</b> ') + esc(c.why);
+  $('chainNextBtn').textContent = (ch.i + 1 >= ch.list.length) ? 'See results →' : 'Next chain →';
+  $('chainWhyWrap').style.display = 'block';
+}
+function quitChains(){
+  if (confirm('Quit chain building? Progress will not be saved.')) { ch = null; renderHome(); go('home'); }
+}
+async function finishChains(){
+  const timeSec = Math.round((Date.now() - ch.t0)/1000);
+  const messy = ch.results.filter(r => !r.clean);
+  await finishConceptMode({
+    mode: 'chains', n: ch.list.length, c: ch.correct, timeSec, xp: ch.xp,
+    topics: ch.topics, subs: ch.subs,
+    emoji: p => p === 100 ? '⛓️🏆' : p >= 70 ? '⛓️🎉' : p >= 40 ? '⛓️💪' : '⛓️📚',
+    subText: 'chains built with no wrong steps · ' + fmtTime(timeSec),
+    reviewHtml: messy.length
+      ? '<h2 style="margin-top:18px">Chains to revisit</h2>' + messy.map(r => {
+          const c = CHAINS.find(x => x.id === r.id);
+          return `<div class="mrevrow"><span class="mk">📌</span><span><b>${esc(c.title)}</b><br><span class="muted">${esc(c.steps.join('  →  '))}</span></span></div>`;
+        }).join('')
+      : '<p class="muted" style="margin-top:18px">Every chain first go. 🎯</p>',
+    againLabel: 'Build more', again: () => showChainSetup()
+  });
+  ch = null;
+}
+
+// ================= CONTENT MAPPER =================
+// A real HSC question (multiple choice or short answer) is shown WITHOUT its
+// answer, and the student classifies it: Topic -> syllabus area, via cascading
+// dropdowns. Questions are already tagged with topic + subs in data.js /
+// data-sa.js, so nothing new needed to be authored.
+//
+// Questions that span two or more syllabus areas are common and legitimate —
+// picking ANY of the tagged areas is marked correct, and the feedback then shows
+// the others it also touches. Untagged questions are excluded from the pool.
+let psel = { n: 10, src: 'both', topics: new Set() };
+let mp = null;
+
+function mapperPool(){
+  const mc = QUESTIONS.map(q => ({...q, kind:'mc'}));
+  const sa = (typeof SA_QUESTIONS !== 'undefined' ? SA_QUESTIONS : []).map(q => ({...q, kind:'sa'}));
+  let pool = psel.src === 'mc' ? mc : psel.src === 'sa' ? sa : [...mc, ...sa];
+  return pool.filter(q => q.topic && q.subs && q.subs.length &&
+    (!psel.topics.size || psel.topics.has(q.topic)));
+}
+function updateMapperPool(){
+  const p = mapperPool();
+  $('mapPoolInfo').textContent = p.length + ' tagged questions available · ' +
+    Math.min(psel.n, p.length) + ' will be asked' +
+    (p.length < psel.n ? ' (that is all there are in this selection)' : '');
+}
+function showMapSetup(){
+  buildTopicStrip('mapTopicBtns', psel.topics, updateMapperPool);
+  if (!$('mapTopicBtns').dataset.wired) {
+    $('mapTopicBtns').dataset.wired = '1';
+    document.querySelectorAll('[data-mpn]').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('[data-mpn]').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel'); psel.n = +b.dataset.mpn; updateMapperPool();
+    }));
+    document.querySelectorAll('[data-mps]').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('[data-mps]').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel'); psel.src = b.dataset.mps; updateMapperPool();
+    }));
+  }
+  updateMapperPool();
+  go('mapsetup');
+}
+function startMapper(){
+  const pool = mapperPool();
+  if (!pool.length) { alert('No tagged questions in that selection — try adding a topic or question type.'); return; }
+  mp = {
+    qs: shuffleArr(pool).slice(0, Math.min(psel.n, pool.length)),
+    i: 0, t0: Date.now(), correct: 0, xp: 0, streak: 0, bestStreak: 0,
+    topics: {}, subs: {}, results: [], answered: false, pick: {topic:null, sub:null}
+  };
+  go('map');
+  showMapQuestion();
+}
+function showMapQuestion(){
+  if (mp.i >= mp.qs.length) { finishMapper(); return; }
+  const q = mp.qs[mp.i];
+  mp.answered = false;
+  mp.pick = {topic:null, sub:null};
+  $('mapCount').textContent = 'Q' + (mp.i+1) + ' / ' + mp.qs.length;
+  $('mapProg').style.width = (mp.i / mp.qs.length * 100) + '%';
+  $('mapStreak').textContent = mp.streak >= 3 ? '🔥 ' + mp.streak : '';
+  $('mapMeta').innerHTML =
+    `<span class="chip">${q.year} HSC</span>` +
+    `<span class="chip">Q${q.n}${q.part ? '(' + esc(q.part) + ')' : ''}</span>` +
+    (q.kind === 'sa' ? `<span class="markchip">${q.marks} mark${q.marks === 1 ? '' : 's'}</span>`
+                     : `<span class="chip">Multiple choice</span>`);
+  $('mapImg').src = q.img;
+  // topic list is always all four — a topic filter narrows the questions, not the options
+  $('mapTopic').innerHTML = '<option value="">Choose a topic…</option>' +
+    Object.keys(SYLLABUS).map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  $('mapSub').innerHTML = '<option value="">Choose a topic first…</option>';
+  $('mapSub').disabled = true;
+  $('mapTopic').disabled = false;
+  $('mapSubmitBtn').disabled = true;
+  $('mapSubmitWrap').style.display = 'block';
+  $('mapFb').style.display = 'none';
+  renderMapTrail();
+}
+// The trail always shows the student's own selection. Once answered it is
+// prefixed with a tick or cross so it can't be mistaken for the model answer,
+// which is shown separately in the feedback panel.
+function renderMapTrail(verdict){
+  const t = mp.pick.topic, s = mp.pick.sub;
+  $('mapTrail').innerHTML =
+    (verdict === true ? '✅ ' : verdict === false ? '❌ ' : '') +
+    (t ? `<span style="color:${TOPIC_COLORS[t]}">${esc(t)}</span>` : '<span class="todo">Topic…</span>') +
+    '<span class="sep">›</span>' +
+    (s ? esc(s) : '<span class="todo">syllabus area…</span>') +
+    (verdict === false ? '<span class="muted" style="font-weight:400"> — your answer</span>' : '');
+}
+function mapPickTopic(){
+  const t = $('mapTopic').value;
+  mp.pick.topic = t || null;
+  mp.pick.sub = null;
+  if (t) {
+    $('mapSub').innerHTML = '<option value="">Choose a syllabus area…</option>' +
+      SYLLABUS[t].map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    $('mapSub').disabled = false;
+  } else {
+    $('mapSub').innerHTML = '<option value="">Choose a topic first…</option>';
+    $('mapSub').disabled = true;
+  }
+  $('mapSubmitBtn').disabled = true;
+  renderMapTrail();
+}
+function mapPickSub(){
+  mp.pick.sub = $('mapSub').value || null;
+  $('mapSubmitBtn').disabled = !(mp.pick.topic && mp.pick.sub);
+  renderMapTrail();
+}
+function mapSubmit(){
+  if (mp.answered || !mp.pick.topic || !mp.pick.sub) return;
+  mp.answered = true;
+  const q = mp.qs[mp.i];
+  const topicRight = mp.pick.topic === q.topic;
+  const right = topicRight && q.subs.includes(mp.pick.sub);
+
+  $('mapTopic').disabled = true;
+  $('mapSub').disabled = true;
+  $('mapSubmitWrap').style.display = 'none';
+  renderMapTrail(right);
+
+  tallyInto(mp.topics, mp.subs, q.topic, q.subs[0], right);
+  if (right) {
+    mp.correct++; mp.streak++; mp.bestStreak = Math.max(mp.bestStreak, mp.streak);
+    mp.xp += 10;
+    if (mp.streak >= 10) mp.xp += 15; else if (mp.streak >= 5) mp.xp += 10; else if (mp.streak >= 3) mp.xp += 5;
+  } else mp.streak = 0;
+  mp.results.push({id: q.id, kind: q.kind, right, picked: mp.pick.topic + ' › ' + mp.pick.sub,
+                   answer: q.topic + ' › ' + q.subs.join(' / ')});
+  $('mapStreak').textContent = mp.streak >= 3 ? '🔥 ' + mp.streak : '';
+
+  const fb = $('mapFb');
+  fb.className = 'feedback ' + (right ? 'good' : 'bad');
+  fb.style.display = 'block';
+  $('mapFbHead').textContent = right ? '✅ Correct'
+    : topicRight ? '❌ Right topic, wrong syllabus area' : '❌ Not quite';
+  const primary = q.subs[0];
+  const others = q.subs.slice(1);
+  $('mapFbBody').innerHTML =
+    `<div class="maptrail" style="margin-top:0"><span style="color:${TOPIC_COLORS[q.topic]}">${esc(q.topic)}</span><span class="sep">›</span>${esc(primary)}</div>` +
+    (others.length ? `<p class="muted" style="margin-top:10px">This question also draws on: ` +
+        others.map(s => `<span class="mapalso">${esc(s)}</span>`).join('') + '</p>' : '');
+  // MC questions carry a written explanation; short answers carry the marking guideline
+  $('mapFbExtra').innerHTML = q.kind === 'mc' && q.expl
+    ? `<p style="margin-top:10px; line-height:1.55">${esc(q.expl)}</p>`
+    : q.kind === 'sa' && q.sample
+      ? `<details class="rev"><summary>Sample answer</summary><pre>${esc(q.sample)}</pre></details>`
+      : '';
+  $('mapNextBtn').textContent = (mp.i + 1 >= mp.qs.length) ? 'See results →' : 'Next →';
+  fb.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function mapNext(){ mp.i++; showMapQuestion(); }
+function quitMapper(){
+  if (confirm('Quit content mapping? Progress will not be saved.')) { mp = null; renderHome(); go('home'); }
+}
+async function finishMapper(){
+  const timeSec = Math.round((Date.now() - mp.t0)/1000);
+  const missed = mp.results.filter(r => !r.right);
+  const bonus = mp.correct === mp.qs.length && mp.qs.length >= 5 ? 20 : 0;
+  await finishConceptMode({
+    mode: 'mapper', n: mp.qs.length, c: mp.correct, timeSec, xp: mp.xp + bonus, bonus,
+    topics: mp.topics, subs: mp.subs,
+    emoji: p => p === 100 ? '🗺️🏆' : p >= 80 ? '🗺️🎉' : p >= 60 ? '🗺️💪' : '🗺️📚',
+    subText: Math.round(mp.correct/mp.qs.length*100) + '% placed correctly · ' + fmtTime(timeSec) +
+      (mp.bestStreak >= 3 ? ' · best streak ' + mp.bestStreak + ' 🔥' : ''),
+    reviewHtml: missed.length
+      ? '<h2 style="margin-top:18px">Worth another look</h2>' + missed.map(r =>
+          `<div class="mrevrow"><span class="mk">📌</span><span><b>${esc(r.id)}</b> — you said <i>${esc(r.picked)}</i><br>
+            <span class="muted">Syllabus: ${esc(r.answer)}</span></span></div>`).join('')
+      : '<p class="muted" style="margin-top:18px">Every question placed correctly. 🎯</p>',
+    againLabel: 'Map more', again: () => showMapSetup()
+  });
+  mp = null;
+}
+
+// ================= DIAGRAM LABELLING =================
+let dg = null;
+
+function showDiagramPick(){
+  $('diagPicker').innerHTML = DIAGRAMS.map((d, i) => {
+    const done = (me.diagrams || {})[d.id];
+    return `<button class="dgpick" onclick="startDiagrams(${i})">
+      <div class="n">${esc(d.title)}</div>
+      <div class="s"><span style="color:${TOPIC_COLORS[d.topic]}">●</span> ${esc(d.sub)}${done ? ' · best ' + done.best + '/' + d.zones.length : ''}</div>
+    </button>`;
+  }).join('');
+  go('diagpick');
+}
+function startDiagrams(index){
+  const list = index == null ? shuffleArr([...DIAGRAMS]) : [DIAGRAMS[index]];
+  dg = {list, i: -1, t0: Date.now(), correct: 0, total: 0, xp: 0, topics: {}, subs: {}, results: []};
+  go('diag');
+  diagNext();
+}
+function diagNext(){
+  dg.i++;
+  if (dg.i >= dg.list.length) { finishDiagrams(); return; }
+  const d = dg.list[dg.i];
+  dg.armed = null; dg.locked = 0; dg.tries = {};
+  $('diagCount').textContent = 'Diagram ' + (dg.i+1) + ' / ' + dg.list.length;
+  $('diagProg').style.width = (dg.i / dg.list.length * 100) + '%';
+  $('diagTitle').textContent = d.title;
+  $('diagTopic').innerHTML = `<span style="color:${TOPIC_COLORS[d.topic]}">●</span> ${esc(d.sub)}`;
+  $('diagNoteWrap').style.display = 'none';
+
+  const leads = d.zones.map((z, i) => {
+    if (z.px == null) return '';
+    const ax = Math.min(Math.max(z.px, z.x), z.x + z.w);
+    const ay = Math.min(Math.max(z.py, z.y), z.y + z.h);
+    return `<line class="dlead" x1="${ax}" y1="${ay}" x2="${z.px}" y2="${z.py}"/><circle cx="${z.px}" cy="${z.py}" r="3" fill="var(--ink2)"/>`;
+  }).join('');
+  const rects = d.zones.map((z, i) =>
+    `<rect class="dzone" id="dz${i}" data-i="${i}" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="8" onclick="diagZoneTap(${i})"/>
+     <text class="dztext" id="dzt${i}" x="${z.x + z.w/2}" y="${z.y + z.h/2 + 5}"></text>`).join('');
+  $('diagWrap').innerHTML = `<svg viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="dgArrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--accent2)"/></marker>
+      <marker id="dgArrowBad" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--bad)"/></marker>
+      <marker id="dgArrowGood" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--good)"/></marker>
+    </defs>
+    ${d.art}${leads}${rects}</svg>`;
+  $('diagChips').innerHTML = shuffleArr(d.zones.map((z, i) => ({z, i}))).map(o =>
+    `<button class="dgchip" id="dc${o.i}" data-i="${o.i}" onclick="diagChipTap(${o.i})">${esc(o.z.label)}</button>`).join('');
+}
+function diagChipTap(i){
+  if (dg.armed === i) { $('dc' + i).classList.remove('sel'); dg.armed = null; return; }
+  if (dg.armed != null) $('dc' + dg.armed).classList.remove('sel');
+  dg.armed = i;
+  $('dc' + i).classList.add('sel');
+}
+function diagZoneTap(zi){
+  if (dg.armed == null) return;
+  const d = dg.list[dg.i], chip = $('dc' + dg.armed), rect = $('dz' + zi);
+  if (dg.armed === zi) {
+    const firstTry = !dg.tries[zi];
+    chip.classList.remove('sel'); chip.classList.add('used');
+    rect.classList.add('hit'); rect.onclick = null;
+    $('dzt' + zi).textContent = d.zones[zi].label;
+    dg.armed = null; dg.locked++;
+    dg.total++;
+    tallyInto(dg.topics, dg.subs, d.topic, d.sub, firstTry);
+    if (firstTry) { dg.correct++; dg.xp += 8; }
+    dg.results.push({diagram: d.id, label: d.zones[zi].label, firstTry});
+    if (dg.locked === d.zones.length) diagComplete();
+  } else {
+    dg.tries[zi] = (dg.tries[zi] || 0) + 1;
+    dg.tries[dg.armed] = (dg.tries[dg.armed] || 0) + 1;
+    rect.classList.add('miss');
+    setTimeout(() => rect.classList.remove('miss'), 380);
+  }
+}
+function diagComplete(){
+  const d = dg.list[dg.i];
+  const scored = dg.results.filter(r => r.diagram === d.id);
+  const best = scored.filter(r => r.firstTry).length;
+  me.diagrams = me.diagrams || {};
+  const prev = me.diagrams[d.id];
+  me.diagrams[d.id] = {best: Math.max(prev ? prev.best : 0, best), runs: (prev ? prev.runs : 0) + 1, last: Date.now()};
+  $('diagNote').innerHTML = '💡 ' + esc(d.note);
+  $('diagNextBtn').textContent = (dg.i + 1 >= dg.list.length) ? 'See results →' : 'Next diagram →';
+  $('diagNoteWrap').style.display = 'block';
+}
+function quitDiagrams(){
+  if (confirm('Quit diagram labelling? Progress will not be saved.')) { dg = null; renderHome(); go('home'); }
+}
+async function finishDiagrams(){
+  const timeSec = Math.round((Date.now() - dg.t0)/1000);
+  const missed = dg.results.filter(r => !r.firstTry);
+  await finishConceptMode({
+    mode: 'diagrams', n: dg.total, c: dg.correct, timeSec, xp: dg.xp,
+    topics: dg.topics, subs: dg.subs,
+    emoji: p => p === 100 ? '📐🏆' : p >= 80 ? '📐🎉' : p >= 60 ? '📐💪' : '📐📚',
+    subText: 'labels placed first try · ' + fmtTime(timeSec),
+    reviewHtml: missed.length
+      ? '<h2 style="margin-top:18px">Labels to revisit</h2>' + missed.map(r => {
+          const d = DIAGRAMS.find(x => x.id === r.diagram);
+          return `<div class="mrevrow"><span class="mk">📌</span><span><b>${esc(r.label)}</b> <span class="muted">— ${esc(d.title)}</span></span></div>`;
+        }).join('')
+      : '<p class="muted" style="margin-top:18px">Every label first try. 🎯</p>',
+    againLabel: 'Label more', again: () => showDiagramPick()
+  });
+  dg = null;
+}
 </script>
+<script src="syllabus-games.js"></script>
 </body>
 </html>

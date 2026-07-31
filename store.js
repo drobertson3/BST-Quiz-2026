@@ -126,11 +126,16 @@ const Store = (() => {
       exams: [],         // {d, c, n, timeSec, pct}
       duels: {w:0, l:0, d:0},
       peer: {count:0, exact:0, totalDiff:0, xp:0},   // peer marking record
+      syl: {plays:0, rounds:0, correct:0, bestStreak:0, perSub:{}, perGame:{}},  // syllabus drills
+      terms: {},         // glossary termId -> {seen, miss, last, ease, ivl, due}  (Matching / Flashcards / Definition Quiz)
+      diagrams: {},      // diagram id -> {best, runs, last}  (Diagram Labelling)
+      conceptTotals: {}, // mode -> lifetime count of items attempted (flashcards, chains, ...)
       seen: {},          // qid -> times seen
       lastSeen: {},      // qid -> timestamp
       wrong: [],         // qids currently answered wrong (cleared when later answered right)
       attempts: [],      // {d, n, c, timeSec, timed, mode, topics:{t:[c,tot]}, subs:{'T|S':[c,tot]}}
-      totals: { answered: 0, correct: 0, perTopic: {}, perSub: {} },
+      totals: { answered: 0, correct: 0, perTopic: {}, perSub: {},
+                perTopicQ: {} },   // perTopicQ excludes concept modes, so mastery badges stay exam-based
       bestStreak: 0
     };
   }
@@ -295,6 +300,65 @@ function peerVerdict(diff){
 // Marks a student has earned that count as "answering" work (peer marking is excluded).
 function answeringAttempts(student){
   return (student.attempts || []).filter(a => a.mode !== 'peermark');
+}
+
+// Parse a NESA marking guideline into ordered rows: [{mark, markLabel, header, text}].
+// The source PDFs put the mark number in a right-hand column, which the text extraction
+// dropped inline (often mid-sentence) — this pulls it back out into a clean band table.
+function parseCriteria(raw, maxMarks){
+  if (!raw) return [];
+  const flat = raw.replace(/\s+/g, ' ').trim();
+  const HEADER = /(Part\b[^•]*?\d+\s*marks?:?)/gi;   // multi-part questions, e.g. "Part (a(ii)) — 2 marks:"
+  const segments = flat.split(HEADER).map(s => s.trim()).filter(Boolean);
+  const rows = [];
+  const inRange = n => n >= 1 && n <= maxMarks;
+
+  // strip the first standalone mark (single "3" or range "5–6") out of a bullet fragment
+  function pullMark(frag){
+    let mark = null, label = null;
+    const out = frag.replace(/(^|\s)(\d{1,2})\s*[–-]\s*(\d{1,2})(?=\s|$)|(^|\s)(\d{1,2})(?=\s|$)/g,
+      (m, p1, lo, hi, p2, single) => {
+        if (mark !== null) return m;                 // only the first in-range number is the mark
+        if (lo !== undefined) { if (inRange(+hi)) { mark = +hi; label = lo + '–' + hi; return (p1 || ''); } return m; }
+        if (inRange(+single)) { mark = +single; label = String(+single); return (p2 || ''); }
+        return m;
+      });
+    return [mark, label, out.replace(/\s+/g, ' ').trim()];
+  }
+
+  for (const seg of segments){
+    if (/^Part\b/i.test(seg)) { rows.push({header: seg.replace(/:?$/, ''), mark: null, markLabel: null, text: ''}); continue; }
+    const bullets = seg.split('•').map(s => s.trim()).filter(Boolean);
+    let preamble = null;
+    for (const frag of bullets){
+      const [mark, label, text] = pullMark(frag);
+      if (mark !== null) {
+        rows.push({mark, markLabel: label, header: null, text: preamble ? (preamble + ' ' + text).trim() : text});
+        preamble = null;
+      } else if (rows.length && rows[rows.length-1].mark !== null) {
+        rows[rows.length-1].text += (rows[rows.length-1].text ? ' ' : '') + text;   // continuation bullet
+      } else {
+        preamble = (preamble ? preamble + ' ' : '') + text;                          // bullet(s) before the first mark
+      }
+    }
+    if (preamble) { const t = rows.find(r => r.mark != null); if (t) t.text = (preamble + ' ' + t.text).trim(); }
+  }
+  return rows;
+}
+
+// Render a marking guideline as a Marks | Criteria table. Self-contained (own escaper)
+// so the student game and the dashboard produce identical markup. Falls back to the raw
+// text if parsing yields nothing.
+function criteriaTableHTML(raw, maxMarks){
+  const escc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const rows = parseCriteria(raw, maxMarks);
+  if (!rows.length) return '<pre>' + escc(raw) + '</pre>';
+  let html = '<table class="crittable"><thead><tr><th>Marks</th><th>Criteria</th></tr></thead><tbody>';
+  for (const r of rows){
+    if (r.header) { html += '<tr class="critpart"><td colspan="2">' + escc(r.header) + '</td></tr>'; continue; }
+    html += '<tr><td class="critmark">' + escc(r.markLabel) + '</td><td>' + escc(r.text) + '</td></tr>';
+  }
+  return html + '</tbody></table>';
 }
 
 function ensureSA(s){
@@ -497,20 +561,51 @@ const BADGES = [
   {id:'peer_10',     emoji:'📋', name:'Marking Centre',desc:'Peer mark 10 answers'},
   {id:'peer_sharp',  emoji:'🔍', name:'Chief Examiner',desc:'Match the teacher exactly 5 times'},
   {id:'sa_submitted',emoji:'📮', name:'Handed In',     desc:'Submit a short answer for marking'},
+  // --- syllabus drills ---
+  {id:'syl_first',   emoji:'🧠', name:'Dot Point Rookie', desc:'Complete your first Syllabus Drill'},
+  {id:'syl_perfect', emoji:'🎯', name:'Syllabus Sniper',  desc:'Perfect score on a 10+ round Syllabus Drill'},
+  {id:'syl_100',     emoji:'📚', name:'Deep Reader',      desc:'Answer 100 Syllabus Drill rounds'},
+  {id:'syl_master',  emoji:'🗂️', name:'Syllabus Master',  desc:'85%+ accuracy over 100+ Syllabus Drill rounds'},
+  {id:'syl_allgames',emoji:'🕹️', name:'Four of a Kind',   desc:'Play all four Syllabus Drill games'},
+  // --- concept library / matching / flashcards / definitions / chains / diagrams ---
+  {id:'match_first', emoji:'🔗', name:'Pair Up',         desc:'Finish your first Matching session'},
+  {id:'match_clean', emoji:'✨', name:'Clean Sweep',     desc:'Match every pair first try in a session'},
+  {id:'match_50',    emoji:'📗', name:'Term Collector',  desc:'Practise 50 different concepts'},
+  {id:'match_150',   emoji:'🗣️', name:'Walking Glossary',desc:'Practise 150 different concepts'},
+  {id:'flash_first', emoji:'🎴', name:'First Review',    desc:'Complete a flashcard session'},
+  {id:'flash_100',   emoji:'📇', name:'Card Shark',      desc:'Review 100 flashcards in total'},
+  {id:'def_first',   emoji:'📖', name:'By Definition',   desc:'Complete a Definition Quiz'},
+  {id:'def_perfect', emoji:'🧮', name:'Word Perfect',    desc:'Score 100% on a 10+ question Definition Quiz'},
+  {id:'chain_first', emoji:'⛓️', name:'First Link',      desc:'Build your first cause-and-effect chain'},
+  {id:'chain_clean', emoji:'🪢', name:'Unbroken',        desc:'Build every chain in a session with no wrong steps'},
+  {id:'chain_25',    emoji:'🧵', name:'Chain Reaction',  desc:'Build 25 chains correctly'},
+  {id:'diag_first',  emoji:'📐', name:'Draughtsman',     desc:'Label your first diagram'},
+  {id:'diag_perfect',emoji:'✏️', name:'Fully Labelled',  desc:'Label a diagram with every label first try'},
+  {id:'diag_all',    emoji:'🗺️', name:'Cartographer',    desc:'Attempt every diagram in the bank'},
+  {id:'map_first',   emoji:'🧭', name:'Map Reader',      desc:'Complete a Content Mapper session'},
+  {id:'map_perfect', emoji:'📍', name:'Pinpoint',        desc:'Place every question correctly in a 10+ question session'},
+  {id:'map_100',     emoji:'🗺️', name:'Surveyor',        desc:'Place 100 questions in the syllabus'},
 ];
+
+// Concept-practice modes. They feed XP and the teacher's topic analysis, but are
+// deliberately excluded from badges that describe sitting a set of exam questions
+// — matching a pair or ticking a dot point is a much easier win than an HSC MCQ.
+const CONCEPT_MODES = new Set(['matching','flashcards','defquiz','chains','diagrams','syllabus','mapper']);
+function isConceptMode(mode){ return CONCEPT_MODES.has(mode); }
 
 function evaluateBadges(student, attempt, totalQuestions){
   const earned = [];
   const has = id => student.badges.includes(id);
   const t = student.totals;
   const topicAcc = (topic) => {
-    const p = t.perTopic[topic]; return p && p[1] >= 25 ? p[0]/p[1] : 0;
+    const p = (t.perTopicQ || {})[topic]; return p && p[1] >= 25 ? p[0]/p[1] : 0;
   };
   const answering = answeringAttempts(student);   // peer marking isn't "doing a quiz"
+  const examAttempt = attempt && !isConceptMode(attempt.mode);
   const checks = {
     first_steps: () => answering.length >= 1,
-    full_section: () => attempt && attempt.n >= 20,
-    sharpshooter: () => attempt && attempt.n >= 10 && attempt.c === attempt.n,
+    full_section: () => examAttempt && attempt.n >= 20,
+    sharpshooter: () => examAttempt && attempt.n >= 10 && attempt.c === attempt.n,
     streak_5:  () => student.bestStreak >= 5,
     streak_10: () => student.bestStreak >= 10,
     centurion: () => t.answered >= 100,
@@ -520,14 +615,14 @@ function evaluateBadges(student, attempt, totalQuestions){
     fin_master:() => topicAcc('Finance') >= 0.85,
     hr_master: () => topicAcc('Human Resources') >= 0.85,
     comeback:  () => attempt && attempt.mode === 'mistakes' && attempt.n > 0 && attempt.c / attempt.n >= 0.8,
-    pacer:     () => attempt && attempt.timed && attempt.n > 0 && (attempt.timeSec / attempt.n) < 60,
+    pacer:     () => examAttempt && attempt.timed && attempt.n > 0 && (attempt.timeSec / attempt.n) < 60,
     streak_15: () => student.bestStreak >= 15,
     dedication:() => answering.length >= 10,
     veteran:   () => answering.length >= 25,
     double_cent:() => t.answered >= 200,
     all_rounder:() => ['Operations','Marketing','Finance','Human Resources']
-                      .every(tp => t.perTopic[tp] && t.perTopic[tp][1] >= 10),
-    perfectionist:() => attempt && attempt.n >= 20 && attempt.c === attempt.n,
+                      .every(tp => (t.perTopicQ || {})[tp] && t.perTopicQ[tp][1] >= 10),
+    perfectionist:() => examAttempt && attempt.n >= 20 && attempt.c === attempt.n,
     clean_slate:() => attempt && attempt.mode === 'mistakes' && student.wrong.length === 0,
     high_flyer:() => levelFromXp(student.xp) >= 5,
     early_bird:() => attempt && new Date(attempt.d).getHours() < 8,
@@ -553,6 +648,28 @@ function evaluateBadges(student, attempt, totalQuestions){
     peer_10:   () => (student.peer?.count || 0) >= 10,
     peer_sharp:() => (student.peer?.exact || 0) >= 5,
     sa_submitted:() => (student.sa?.submitted || 0) >= 1,
+    syl_first:  () => (student.syl?.plays || 0) >= 1,
+    syl_perfect:() => attempt && attempt.mode === 'syllabus' && attempt.n >= 10 && attempt.c === attempt.n,
+    syl_100:    () => (student.syl?.rounds || 0) >= 100,
+    syl_master: () => (student.syl?.rounds || 0) >= 100 && (student.syl.correct / student.syl.rounds) >= 0.85,
+    syl_allgames:()=> Object.keys(student.syl?.perGame || {}).length >= 4,
+    match_first:() => attempt && attempt.mode === 'matching',
+    match_clean:() => attempt && attempt.mode === 'matching' && attempt.n > 0 && attempt.c === attempt.n,
+    match_50:  () => Object.keys(student.terms || {}).length >= 50,
+    match_150: () => Object.keys(student.terms || {}).length >= 150,
+    flash_first:() => attempt && attempt.mode === 'flashcards',
+    flash_100: () => (student.conceptTotals?.flashcards || 0) >= 100,
+    def_first: () => attempt && attempt.mode === 'defquiz',
+    def_perfect:() => attempt && attempt.mode === 'defquiz' && attempt.n >= 10 && attempt.c === attempt.n,
+    chain_first:() => attempt && attempt.mode === 'chains',
+    chain_clean:() => attempt && attempt.mode === 'chains' && attempt.n > 0 && attempt.c === attempt.n,
+    chain_25:  () => (student.conceptTotals?.chains || 0) >= 25,
+    diag_first:() => attempt && attempt.mode === 'diagrams',
+    diag_perfect:() => attempt && attempt.mode === 'diagrams' && attempt.n > 0 && attempt.c === attempt.n,
+    diag_all:  () => Object.keys(student.diagrams || {}).length >= (typeof DIAGRAMS !== 'undefined' ? DIAGRAMS.length : 10),
+    map_first: () => attempt && attempt.mode === 'mapper',
+    map_perfect:() => attempt && attempt.mode === 'mapper' && attempt.n >= 10 && attempt.c === attempt.n,
+    map_100:   () => (student.conceptTotals?.mapper || 0) >= 100,
   };
   for (const b of BADGES) {
     if (!has(b.id) && checks[b.id] && checks[b.id]()) { student.badges.push(b.id); earned.push(b); }
