@@ -42,13 +42,14 @@ Upload these files, **overwriting** what's there:
 | `index.html` | ✅ heavily — all new modes |
 | `store.js` | ✅ heavily — classes, duels, responses, peer marking |
 | `config.js` | ✅ — added `CLASSES`, removed the AI key block |
-| `data.js` | unchanged — only re-upload if it's missing |
-| `data-sa.js` | ⚠️ **may be missing entirely** — the old build had no Short Answer |
+| `data.js` | ✅ — 239 questions re-tagged; HR gained a fifth syllabus area |
+| `data-sa.js` | ✅ — 91 questions re-tagged (and may be missing entirely from the old build) |
 | `syllabus-content.js` | 🆕 **NEW FILE** — the NESA dot points behind Syllabus Drills |
 | `glossary.js` | 🆕 **NEW FILE** — 307 terms behind Matching, Flashcards & Definition Quiz |
 | `chains.js` | 🆕 **NEW FILE** — 53 cause-and-effect chains behind Chain Builder |
 | `diagrams.js` | 🆕 **NEW FILE** — the 10 diagrams behind Diagram Labelling |
 | `syllabus-games.js` | 🆕 **NEW FILE** — the four Syllabus Drills games |
+| `study.js` | 🆕 **NEW FILE** — the What To Study analytics |
 | `.nojekyll` | unchanged — must exist |
 | all `.png` files | unchanged if already there |
 
@@ -62,6 +63,9 @@ GitHub overwrites files with the same name automatically.
 > check the repo file list for it before you finish. Same goes for the two
 > `syllabus-*.js` files and for `glossary.js`, `chains.js` and `diagrams.js` —
 > miss any one and the tile that depends on it will do nothing when tapped.
+>
+> `data.js` **has changed** this time — 239 questions were re-tagged to the correct
+> syllabus areas, and the HR topic gained its fifth area. Re-upload it.
 
 ---
 
@@ -76,7 +80,7 @@ Your second repo (the unguessable-name one). Upload:
 | `config.js` | ✅ — added `CLASSES`, `AI_CONFIG`, your new password |
 | `data-sa.js` | 🆕 **NEW FILE** — needed to show questions and criteria while marking |
 | `marker.js` | 🆕 **NEW FILE** — only used if you add an AI key; harmless without one |
-| `syllabus.js` | unchanged |
+| `syllabus.js` | ✅ — HR gained a fifth syllabus area |
 
 `data-sa.js` and `marker.js` are new to this folder. Miss `data-sa.js` and the marking
 queue won't show the NESA criteria or the question image.
@@ -93,7 +97,10 @@ browsers cache aggressively and you'll otherwise see the old version.
 - [ ] Home menu shows: Multiple Choice Quiz, Short Answer Quiz, Peer Marking,
       My Answers, Content Mapper, Matching, Flashcards, Definition Quiz,
       Chain Builder, Diagram Labelling, Syllabus Drills, My Mistakes,
-      Daily Challenge, Survival, Exam Simulation, Duels, Leaderboard, My Progress
+      Daily Challenge, Survival, Exam Simulation, Duels, Leaderboard,
+      What To Study, My Progress
+- [ ] Tap **What To Study** — on a fresh account it says there's nothing to go on
+      yet; after a quiz it names a specific syllabus area to start with
 - [ ] Tap **Content Mapper** — a question appears and the syllabus-area dropdown
       stays greyed out until a topic is chosen
 - [ ] Tap **Matching** — a round deals 6 terms against 6 definitions

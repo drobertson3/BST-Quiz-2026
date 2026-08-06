@@ -205,6 +205,19 @@ textarea:focus{outline:2px solid var(--accent)}
 .dgpick{background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:14px; cursor:pointer; color:var(--ink); text-align:left}
 .dgpick:hover{border-color:var(--accent)}
 .dgpick .n{font-weight:700; font-size:.95rem} .dgpick .s{font-size:.76rem; color:var(--ink2); margin-top:4px}
+/* ---- what to study ---- */
+.studytop{background:linear-gradient(135deg,rgba(255,94,122,.16),rgba(108,92,231,.14)); border:1px solid var(--accent); border-radius:14px; padding:16px 18px}
+.studytop .lbl{font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; color:var(--ink2); font-weight:800}
+.studytop .nm{font-size:1.22rem; font-weight:800; margin-top:5px}
+.studycard{background:var(--card); border:1px solid var(--line); border-left:5px solid var(--line); border-radius:14px; padding:15px 17px; margin-bottom:11px}
+.studycard.focus{border-left-color:var(--bad)} .studycard.watch{border-left-color:var(--gold)} .studycard.solid{border-left-color:var(--good)}
+.studycard .pri{font-size:.68rem; text-transform:uppercase; letter-spacing:.08em; font-weight:800; color:var(--ink2)}
+.studycard.focus .pri{color:var(--bad)} .studycard.watch .pri{color:var(--gold)} .studycard.solid .pri{color:var(--good)}
+.studycard .nm{font-size:1.05rem; font-weight:700; margin-top:3px}
+.studyquick{display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--line)}
+.studyquick .e{font-size:1.5rem; flex:0 0 30px}
+.studyquick .t{flex:1; font-size:.92rem; line-height:1.45}
+.studytopic{font-weight:800; font-size:.95rem; margin:16px 0 6px}
 /* ---- content mapper ---- */
 .mapmeta{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px}
 .mapask{font-size:1.02rem; font-weight:700; margin:16px 0 10px}
@@ -297,6 +310,7 @@ textarea:focus{outline:2px solid var(--accent)}
       <button class="menubtn" onclick="showExam()"><div class="e">📄</div><div class="t">Exam Simulation</div><div class="d">20 questions · 20 minutes</div></button>
       <button class="menubtn" onclick="showDuels()"><div class="e">🥊</div><div class="t">Duels</div><div class="d" id="duelDesc">Challenge a classmate</div></button>
       <button class="menubtn" onclick="showLeaderboard()"><div class="e">🏆</div><div class="t">Leaderboard</div><div class="d">Class rankings</div></button>
+      <button class="menubtn" onclick="showStudy()"><div class="e">🎯</div><div class="t">What To Study</div><div class="d" id="studyDesc">Find out where to spend your time</div></button>
       <button class="menubtn" onclick="showProgress()"><div class="e">📈</div><div class="t">My Progress</div><div class="d">Scores, topics & badges</div></button>
     </div>
   </div>
@@ -952,6 +966,18 @@ textarea:focus{outline:2px solid var(--accent)}
     </div>
   </div>
 
+  <!-- ============ WHAT TO STUDY ============ -->
+  <div id="scr-study" class="screen">
+    <a class="back" onclick="renderHome();go('home')">← home</a>
+    <h1 style="margin:10px 0 4px">🎯 What To Study</h1>
+    <p class="muted" style="margin-bottom:14px">Built from everything you've done in here — questions, drills, terms, diagrams and marked writing — weighted by how often each area actually comes up in the HSC.</p>
+    <div class="card" id="studyHead"></div>
+    <div id="studyList"></div>
+    <div class="card" id="studyQuick"></div>
+    <div class="card" id="studyCoverage" style="padding-bottom:24px"></div>
+    <div style="height:24px"></div>
+  </div>
+
   <!-- ============ CONTENT MAPPER ============ -->
   <div id="scr-mapsetup" class="screen">
     <a class="back" onclick="renderHome();go('home')">← home</a>
@@ -1127,7 +1153,7 @@ function go(name){
 
 // ---------- login ----------
 function renderNames(list){
-  $('nameGrid').innerHTML = list.map(n => `<button class="namebtn" onclick="pickName(${JSON.stringify(n).replace(/"/g,'&quot;')})">${n}</button>`).join('') || '<p class="muted">No students yet — the teacher adds names in config.js or the dashboard.</p>';
+  $('nameGrid').innerHTML = list.map(n => `<button class="namebtn" onclick="pickName(${JSON.stringify(n).replace(/"/g,'&quot;')})">${esc(n)}</button>`).join('') || '<p class="muted">No students yet — the teacher adds names in config.js or the dashboard.</p>';
 }
 $('nameSearch').addEventListener('input', e => {
   const q = e.target.value.toLowerCase();
@@ -1203,7 +1229,7 @@ function renderHome(){
   const t = me.totals;
   const acc = t.answered ? Math.round(t.correct/t.answered*100) : 0;
   $('homeStats').innerHTML =
-    stat(me.attempts.length,'Quizzes') + stat(t.answered,'Questions') +
+    stat(answeringAttempts(me).length,'Quizzes') + stat(t.answered,'Questions') +
     stat(acc + '%','Accuracy') + stat(me.bestStreak,'Best streak') +
     (me.sa && me.sa.marksTotal ? stat(Math.round(me.sa.marks/me.sa.marksTotal*100) + '%','SA marks') : '') +
     stat(me.badges.length + '/' + BADGES.length,'Badges');
@@ -1220,6 +1246,7 @@ function renderHome(){
   const pr = me.peer;
   $('peerDesc').textContent = pr && pr.count ? pr.exact + ' spot on out of ' + pr.count + ' marked' : "Mark a classmate's answer";
   const sy = me.syl;
+  if (typeof studyHomeLine === 'function') $('studyDesc').textContent = studyHomeLine();
   $('sylDesc').textContent = sy && sy.rounds
     ? Math.round(sy.correct/sy.rounds*100) + '% over ' + sy.rounds + ' dot-point rounds'
     : 'Learn the dot points by heart';
@@ -1269,6 +1296,7 @@ async function refreshAnswerBadge(){
 async function refreshDuelBadge(){
   try {
     const duels = await Store.getDuelsFor(me.name);
+    await settleDuels(duels);
     const mine = Store.slug(me.name);
     const yourTurn = duels.filter(x => !x.res[mine]).length;
     const settled  = duels.filter(x => x.res[mine] && Object.keys(x.res).length > 1).length;
@@ -1548,12 +1576,9 @@ async function finishQuiz(){
       const oppName = duel.from === me.name ? duel.to : duel.from;
       const mine = duel.res[Store.slug(me.name)], theirs = duel.res[Store.slug(oppName)];
       const outcome = duelOutcome(mine, theirs);
-      if (outcome !== 'pending' && !(me.duelsSettled || []).includes(duel.id)) {
-        me.duels = me.duels || {w:0,l:0,d:0};
-        if (outcome === 'win') me.duels.w++; else if (outcome === 'loss') me.duels.l++; else me.duels.d++;
-        me.duelsSettled = [...(me.duelsSettled || []), duel.id];
-        newBadges.push(...evaluateBadges(me, attempt, QUESTIONS.length));
-      }
+      // settleDuels is the single place a duel is scored, so playing second and
+      // re-opening the Duels screen can never both count the same result.
+      if (await settleDuels([duel])) newBadges.push(...evaluateBadges(me, attempt, QUESTIONS.length));
       duelInfo = {oppName, mine, theirs, outcome};
     }
   }
@@ -1634,7 +1659,7 @@ async function renderDailyBoard(){
   if (!rows.length) { $('dailyBoard').innerHTML = '<p class="muted">Nobody has played today yet — be first on the board.</p>'; return; }
   $('dailyBoard').innerHTML = '<table><tr><th>#</th><th>Player</th><th>Class</th><th>Score</th><th>Time</th><th>Streak</th></tr>' +
     rows.map((s,i) => `<tr class="${s.name===me.name?'me':''}"><td class="${i===0?'rank1':i===1?'rank2':i===2?'rank3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
-      <td>${s.name}</td><td class="muted">${classOf(s) || '—'}</td><td><b>${s.daily.c}/${s.daily.n}</b></td>
+      <td>${esc(s.name)}</td><td class="muted">${esc(classOf(s) || '—')}</td><td><b>${s.daily.c}/${s.daily.n}</b></td>
       <td>${fmtTime(s.daily.timeSec)}</td><td>🔥 ${s.daily.streak}</td></tr>`).join('') + '</table>';
 }
 
@@ -1658,7 +1683,7 @@ async function showSurvival(){
   $('survBoard').innerHTML = rows.length
     ? '<table><tr><th>#</th><th>Player</th><th>Class</th><th>Best run</th><th>Runs</th></tr>' +
       rows.map((x,i) => `<tr class="${x.name===me.name?'me':''}"><td class="${i===0?'rank1':i===1?'rank2':i===2?'rank3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
-        <td>${x.name}</td><td class="muted">${classOf(x) || '—'}</td><td><b>${x.survival.best}</b></td><td>${x.survival.runs}</td></tr>`).join('') + '</table>'
+        <td>${esc(x.name)}</td><td class="muted">${esc(classOf(x) || '—')}</td><td><b>${x.survival.best}</b></td><td>${x.survival.runs}</td></tr>`).join('') + '</table>'
     : '<p class="muted">No runs yet — set the mark.</p>';
 }
 function startSurvival(){
@@ -1669,21 +1694,46 @@ function startSurvival(){
 
 // ================= DUELS =================
 let myDuels = [];
+// A duel is decided only once BOTH players have played, and each player's own
+// browser writes their own W/L/D. Whoever finished first is still 'pending' at
+// that moment, so their record has to be caught up the next time they load
+// their duels — otherwise the first player's results are never counted at all.
+async function settleDuels(duels){
+  me.duelsSettled = me.duelsSettled || [];
+  let changed = false;
+  for (const d of duels) {
+    if (!d || me.duelsSettled.includes(d.id)) continue;
+    const opp = d.from === me.name ? d.to : d.from;
+    const outcome = duelOutcome(d.res[Store.slug(me.name)], d.res[Store.slug(opp)]);
+    if (outcome === 'pending') continue;
+    me.duels = me.duels || {w:0, l:0, d:0};
+    if (outcome === 'win') me.duels.w++; else if (outcome === 'loss') me.duels.l++; else me.duels.d++;
+    me.duelsSettled.push(d.id);
+    changed = true;
+  }
+  if (changed) {
+    evaluateBadges(me, null, QUESTIONS.length);
+    await Store.saveStudent(me.name, me);
+  }
+  return changed;
+}
+
 async function showDuels(){
   go('duels');
+  renderDuelNames('');
+  myDuels = await Store.getDuelsFor(me.name);
+  await settleDuels(myDuels);
   const rec = me.duels || {w:0,l:0,d:0};
   $('duelRecord').innerHTML = `<div class="row" style="justify-content:center; gap:26px">
     <div class="center"><div class="bigstat" style="color:var(--good)">${rec.w}</div><div class="muted">won</div></div>
     <div class="center"><div class="bigstat" style="color:var(--bad)">${rec.l}</div><div class="muted">lost</div></div>
     <div class="center"><div class="bigstat" style="color:var(--ink2)">${rec.d}</div><div class="muted">drawn</div></div></div>`;
-  renderDuelNames('');
-  myDuels = await Store.getDuelsFor(me.name);
   renderDuelList();
 }
 function renderDuelNames(q){
   const opponents = roster.filter(n => n !== me.name && n.toLowerCase().includes(q));
   $('duelNames').innerHTML = opponents.length
-    ? opponents.map(n => `<button class="namebtn" onclick="challenge(${JSON.stringify(n).replace(/"/g,'&quot;')})">${n}${classOf({name:n}) ? ' <span class="muted">· ' + classOf({name:n}) + '</span>' : ''}</button>`).join('')
+    ? opponents.map(n => `<button class="namebtn" onclick="challenge(${JSON.stringify(n).replace(/"/g,'&quot;')})">${esc(n)}${classOf({name:n}) ? ' <span class="muted">· ' + esc(classOf({name:n})) + '</span>' : ''}</button>`).join('')
     : '<p class="muted">No one to challenge yet.</p>';
 }
 $('duelSearch').addEventListener('input', e => renderDuelNames(e.target.value.toLowerCase()));
@@ -1725,7 +1775,7 @@ function renderDuelList(){
       pill = `<span class="pill ${out}">${out === 'win' ? 'won' : out === 'loss' ? 'lost' : 'draw'}</span>`;
       right = `<span class="muted">${mine.c}–${theirs.c} · ${fmtTime(mine.timeSec)} v ${fmtTime(theirs.timeSec)}</span>`;
     }
-    return `<div class="duelrow"><span><b>${opp}</b> ${classOf({name:opp}) ? '<span class="muted">· ' + classOf({name:opp}) + '</span>' : ''} ${pill}</span>${right}</div>`;
+    return `<div class="duelrow"><span><b>${esc(opp)}</b> ${classOf({name:opp}) ? '<span class="muted">· ' + esc(classOf({name:opp})) + '</span>' : ''} ${pill}</span>${right}</div>`;
   }).join('');
 }
 
@@ -1908,7 +1958,7 @@ function renderBoard(){
   list.forEach((s, i) => {
     const acc = s.totals.answered ? Math.round(s.totals.correct/s.totals.answered*100) : 0;
     const rank = i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
-    html += `<tr class="${s.name===me.name?'me':''}"><td class="${rank}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td><td>${s.name}</td><td class="muted">${classOf(s) || '—'}</td><td>${levelFromXp(s.xp)} · ${levelName(levelFromXp(s.xp))}</td><td>${s.xp}</td><td>${acc}%</td><td>${s.totals.answered}</td></tr>`;
+    html += `<tr class="${s.name===me.name?'me':''}"><td class="${rank}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td><td>${esc(s.name)}</td><td class="muted">${esc(classOf(s) || '—')}</td><td>${levelFromXp(s.xp)} · ${levelName(levelFromXp(s.xp))}</td><td>${s.xp}</td><td>${acc}%</td><td>${s.totals.answered}</td></tr>`;
   });
   $('boardTable').innerHTML = html + '</table>';
 }
@@ -1952,7 +2002,9 @@ function renderClassBattle(allStudents){
 let chart = null;
 function showProgress(){
   go('progress');
-  const atts = me.attempts;
+  // peer-marking sessions are recorded as attempts with n = 0, which plotted as
+  // NaN and broke the line; they are not "a quiz you sat" either way
+  const atts = answeringAttempts(me).filter(a => a.n > 0);
   if (typeof Chart !== 'undefined' && atts.length) {
     $('progNone').style.display = 'none';
     if (chart) chart.destroy();
@@ -2148,21 +2200,30 @@ function saNext(){
   if (sa.i >= sa.qs.length) finishSA();
   else showSAQuestion();
 }
-function quitSA(){
+// Credit the effort XP for whatever was handed in this session. Called from the
+// normal finish AND from Quit: the answers are already sitting in the teacher's
+// queue either way, so the XP must not depend on the student staying to the end.
+async function commitSASession(){
+  const mySA = ensureSA(me);
+  mySA.submitted += sa.submitted;
+  me.xp += sa.xp;
+  const badges = evaluateBadges(me, null, QUESTIONS.length);
+  await Store.saveStudent(me.name, me);
+  return badges;
+}
+async function quitSA(){
   const msg = sa && sa.submitted
     ? 'Quit? The ' + sa.submitted + ' answer(s) you already handed in are safe — you just won\'t write the rest.'
     : 'Quit? Nothing has been handed in yet.';
-  if (confirm(msg)) { sa = null; renderHome(); go('home'); }
+  if (!confirm(msg)) return;
+  if (sa && sa.submitted) await commitSASession();
+  sa = null; renderHome(); go('home');
 }
 async function finishSA(){
   const timeSec = Math.round((Date.now() - sa.t0) / 1000);
   // Nothing is scored here — marks arrive only when the teacher marks the work.
   // The student earns XP for the effort of handing in.
-  const mySA = ensureSA(me);
-  mySA.submitted += sa.submitted;
-  me.xp += sa.xp;
-  const newBadges = evaluateBadges(me, null, QUESTIONS.length);
-  await Store.saveStudent(me.name, me);
+  const newBadges = await commitSASession();
 
   const totalMarks = sa.results.reduce((a,r) => a + r.max, 0);
   $('saResEmoji').textContent = '📮';
@@ -3278,5 +3339,6 @@ async function finishDiagrams(){
 }
 </script>
 <script src="syllabus-games.js"></script>
+<script src="study.js"></script>
 </body>
 </html>

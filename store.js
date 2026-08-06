@@ -140,14 +140,36 @@ const Store = (() => {
     };
   }
 
+  // A record written by an older build - or one half-written when a tab was
+  // closed mid-save - can be missing newer fields. Every screen assumes they
+  // exist, so a single bad record used to take out the whole leaderboard and
+  // the whole dashboard. Gaps are filled on read; nothing present is touched.
+  function normaliseStudent(d){
+    if (!d || typeof d !== 'object') return d;
+    const b = blankStudent(d.name || '');
+    for (const k of ['badges','exams','attempts','wrong'])
+      if (!Array.isArray(d[k])) d[k] = b[k];
+    for (const k of ['seen','lastSeen','duels','peer','syl','terms','diagrams','conceptTotals'])
+      if (!d[k] || typeof d[k] !== 'object') d[k] = b[k];
+    if (!d.totals || typeof d.totals !== 'object') d.totals = b.totals;
+    d.totals.perTopic  = d.totals.perTopic  || {};
+    d.totals.perSub    = d.totals.perSub    || {};
+    d.totals.perTopicQ = d.totals.perTopicQ || {};
+    if (typeof d.totals.answered !== 'number') d.totals.answered = 0;
+    if (typeof d.totals.correct  !== 'number') d.totals.correct  = 0;
+    if (typeof d.xp         !== 'number') d.xp = 0;
+    if (typeof d.bestStreak !== 'number') d.bestStreak = 0;
+    return d;
+  }
+
   async function getStudent(name){
     const id = slugify(name);
     if (cloud) {
       const doc = await db.collection('students').doc(id).get();
-      return doc.exists ? doc.data() : null;
+      return doc.exists ? normaliseStudent(doc.data()) : null;
     }
     const all = lsGet('hscq_students', {});
-    return all[id] || null;
+    return all[id] ? normaliseStudent(all[id]) : null;
   }
 
   async function saveStudent(name, data){
@@ -167,10 +189,10 @@ const Store = (() => {
   async function getAllStudents(){
     if (cloud) {
       const snap = await db.collection('students').get();
-      return snap.docs.map(d => d.data());
+      return snap.docs.map(d => normaliseStudent(d.data()));
     }
     const all = lsGet('hscq_students', {});
-    return Object.values(all);
+    return Object.values(all).map(normaliseStudent);
   }
 
   // ---- short-answer responses ----
@@ -595,6 +617,13 @@ function isConceptMode(mode){ return CONCEPT_MODES.has(mode); }
 
 function evaluateBadges(student, attempt, totalQuestions){
   const earned = [];
+  // The dashboard calls this with totalQuestions = 0 (it never loads the MCQ
+  // bank), which used to make the "seen every question" test trivially true and
+  // handed Explorer to everyone the moment a short answer was marked. Strip a
+  // badge that was awarded that way the next time the student plays.
+  if (totalQuestions > 0 && student.badges &&
+      Object.keys(student.seen || {}).length < totalQuestions)
+    student.badges = student.badges.filter(id => id !== 'explorer');
   const has = id => student.badges.includes(id);
   const t = student.totals;
   const topicAcc = (topic) => {
@@ -609,7 +638,7 @@ function evaluateBadges(student, attempt, totalQuestions){
     streak_5:  () => student.bestStreak >= 5,
     streak_10: () => student.bestStreak >= 10,
     centurion: () => t.answered >= 100,
-    explorer:  () => Object.keys(student.seen).length >= totalQuestions,
+    explorer:  () => totalQuestions > 0 && Object.keys(student.seen || {}).length >= totalQuestions,
     ops_master:() => topicAcc('Operations') >= 0.85,
     mkt_master:() => topicAcc('Marketing') >= 0.85,
     fin_master:() => topicAcc('Finance') >= 0.85,

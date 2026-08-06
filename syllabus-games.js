@@ -348,8 +348,9 @@ async function sylFinish(){
   pg[0] += c; pg[1] += n;
   for (const l of syl.log) {
     if (!l.subKey) continue;
-    const p = st.perSub[l.subKey] = st.perSub[l.subKey] || [0,0];
-    p[1]++; if (l.right) p[0]++;
+    // [correct, total, lastSeen] — the timestamp lets What To Study spot areas going stale
+    const p = st.perSub[l.subKey] = st.perSub[l.subKey] || [0,0,0];
+    p[1]++; if (l.right) p[0]++; p[2] = Date.now();
   }
 
   me.xp += syl.xp;

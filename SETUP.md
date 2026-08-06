@@ -80,7 +80,8 @@ Every mode feeds the same XP, accuracy, topic and badge totals, so nothing is a 
 | 💀 **Survival** | Sudden death — one wrong answer ends the run | XP climbs from 10 to 50 per answer as the run deepens. Personal bests on a leaderboard |
 | 📄 **Exam Simulation** | 20 multiple choice in 20 minutes | Pausable, no feedback until submit, then mark + indicative band + full worked review. +40 XP for sitting the paper |
 | 🥊 **Duels** | Challenge anyone to the same 10 questions | Asynchronous — play whenever. Settles when both finish; ties broken by time |
-| 🗺️ **Content Mapper** | A real HSC question, un-answered — place it in the syllabus via Topic › syllabus area dropdowns | 394 tagged questions (MC and short answer). Questions spanning two areas accept either; the feedback shows the rest |
+| 🎯 **What To Study** | Ranks every syllabus area by what to revise next | Pools accuracy, coverage gaps, staleness and how often each area appears in the 440-question bank. Each recommendation opens the right mode filtered to that area |
+| 🗺️ **Content Mapper** | A real HSC question, un-answered — place it in the syllabus via Topic › syllabus area dropdowns | 440 tagged questions (MC and short answer). Questions spanning two areas accept either; the feedback shows the rest |
 | 🧠 **Syllabus Drills** | Four games on the NESA "students learn about" dot points | Where Does It Belong?, Fill the Subtopic, Odd One Out, Fill the Gap |
 | 🔗 **Matching** | Pair terms with definitions against the clock | Each round is drawn from one subtopic, so the definitions are genuinely hard to tell apart |
 | 🎴 **Flashcards** | Spaced repetition over the 307-term glossary | Light SM-2: cards rated *Easy* return in weeks, *Again* returns the same session |
