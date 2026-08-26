@@ -3,13 +3,8 @@
 // Edit this file, save, and refresh the page. See SETUP.md for help.
 // ====================================================================
 
-// 0. SIGN-IN DOMAIN — no longer used. Students sign in with a name + 4-digit
-//    PIN (see store.js pinHash), not Google, so there is no account domain to
-//    restrict. Left here, commented out, in case Google sign-in ever returns.
-// const ALLOWED_DOMAIN = "scas.nsw.edu.au";
-
 // 1. YOUR CLASS LIST — one name per line, inside the quotes.
-//    Students pick their name and set their own 4-digit PIN on first login.
+//    Students pick their name and set their own PIN on first login.
 const CLASS_LIST = [
   "Demo Student",
   // "Oscar",

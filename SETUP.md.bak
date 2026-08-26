@@ -5,12 +5,7 @@ There are TWO folders, deployed separately so students can never see the dashboa
 | Folder | What it is | Who gets the link |
 |---|---|---|
 | `quiz-game` | The student game | Students |
-| `quiz-teacher` | Your dashboard (settings and teacher list live here) | Only you |
-
-> **Sign-in has changed.** Students and teachers now sign in with their school
-> Google account instead of a PIN and a password. Read
-> **GOOGLE-SSO-SETUP.md** — it is the one thing you must do before the next
-> deploy. The rest of this guide assumes it is done.
+| `quiz-teacher` | Your dashboard (password + settings live here) | Only you |
 
 The game works in three levels of setup. You can start at Level 1 right now and upgrade later.
 
@@ -25,8 +20,8 @@ The game works in three levels of setup. You can start at Level 1 right now and 
 ## Level 1 — Try it now (no setup)
 
 1. Open `index.html` in the `quiz-game` folder (double-click it).
-2. With no Firebase configured this runs in practice mode: pick **Demo Student** and play. (Google sign-in needs Firebase — see GOOGLE-SSO-SETUP.md.)
-3. Open `index.html` in the `quiz-teacher` folder to see the dashboard.
+2. Log in as **Demo Student**, create any PIN, play a quiz.
+3. Open `index.html` in the `quiz-teacher` folder, password `change-me`, to see the dashboard.
 
 A yellow banner reminds you results are device-only until Firebase is set up.
 
@@ -43,10 +38,10 @@ const CLASS_LIST = [
 ];
 ```
 
-3. In `quiz-teacher/config.js`, set `ALLOWED_DOMAIN` to your school's domain and put your own school address in `TEACHER_EMAILS`.
+3. In `quiz-teacher/config.js`, change `TEACHER_PASSWORD` from `"change-me"` to your own password.
 4. Save. Done. (You can also add/remove students later from the dashboard's Class list tab.)
 
-Each student also needs their school email address next to their name — in the dashboard's Class list tab, or pasted as `Name, email` in the Add students box. Until that is set they cannot sign in. See GOOGLE-SSO-SETUP.md.
+Students pick their name and create their own 4-digit PIN the first time they log in. You can reset a PIN from the dashboard.
 
 ---
 
@@ -181,9 +176,8 @@ service cloud.firestore {
 }
 ```
 
-   **These are the old, open rules.** Now that sign-in is Google-backed, replace
-   them with the contents of `FIRESTORE-RULES.txt`, which only lets verified
-   school accounts in. See GOOGLE-SSO-SETUP.md, step 4.
+   (Test mode expires after 30 days — this keeps it working. It's open access,
+   which is acceptable for quiz scores; don't store anything sensitive.)
 
    These rules cover every collection the game uses — `students`, `meta`, `duels`
    and `responses` — so nothing extra is needed when you start using short answer
@@ -232,13 +226,10 @@ To update the class list later: use the dashboard's Class list tab (saved in Fir
 no re-upload needed) or edit `config.js` on GitHub (pencil icon).
 
 **Security notes:**
-- The student site contains no dashboard link, and the dashboard now checks a
-  Google sign-in against `TEACHER_EMAILS` — so finding the URL is no longer
-  enough to open it.
-- Add both site hosts to Firebase's **Authorized domains** or sign-in will fail
-  (GOOGLE-SSO-SETUP.md, step 2).
-- The Firestore rules in `FIRESTORE-RULES.txt` are what actually protect the
-  data. Publish them — the open `if true` rules below are the old ones.
+- The student site contains no dashboard link and no password — students would have
+  to guess the second repo's URL to even find the login page.
+- GitHub Pages sites are public, so the dashboard password is only a speed bump for
+  someone who finds the URL; the unguessable repo name is the real protection.
 - Results data lives in Firebase, not GitHub.
 
 ---
@@ -283,9 +274,9 @@ press Approve.
 
 ## Everyday use
 
-- **Students:** open the link → **Sign in with Google** → play. Everything else is automatic
+- **Students:** open the link → tap their name → PIN → play. Everything else is automatic
   (XP, levels, badges, streaks, leaderboard, My Mistakes).
-- **You:** open your dashboard link → sign in with Google → see class stats, per-student detail
+- **You:** open your dashboard link → password → see class stats, per-student detail
   (click any row), topic heatmap, weakest syllabus areas, and manage the class list.
 - **Question bank:** 280 Section I multiple-choice questions plus 160 Section II
   short-answer questions, 2012–2025 HSC papers, shown as the original exam scans —
@@ -299,5 +290,4 @@ press Approve.
   that site's own config.js) and you created the Firestore database (step 5).
 - **Charts not showing** — the progress chart needs internet (it loads a chart library);
   everything else works offline.
-- **Student can't sign in** — the screen tells them which address they used. Check it matches the one in the dashboard's Class list tab exactly, and that it is a school address.
-- **Someone linked to the wrong name** — dashboard → Students tab → click their row → Unlink Google account, then set the right address in Class list.
+- **Student forgot PIN** — dashboard → Students tab → click their row → Reset PIN.

@@ -117,65 +117,11 @@ const Store = (() => {
     return (typeof CLASSES !== 'undefined' && CLASSES.length) ? CLASSES : ['DRO','DJK'];
   }
 
-
-  // ---- email -> name mapping (Google sign-in) ----
-  // Single source of truth: meta/roster.emails = { "Student Name": "student@school.edu.au" }
-  // The teacher fills this in from the dashboard's Class list tab. A student who
-  // signs in with an address that is not in here gets a "not linked yet" screen
-  // rather than a new blank record, so nobody can accidentally start a second
-  // history under a slightly different name.
-  async function getEmailMap(){
-    if (cloud) {
-      const doc = await db.collection('meta').doc('roster').get();
-      return doc.exists ? (doc.data().emails || {}) : {};
-    }
-    return lsGet('hscq_emails', {});
-  }
-  async function setStudentEmail(name, email){
-    const clean = String(email || '').trim().toLowerCase();
-    if (cloud) {
-      const value = clean ? clean : firebase.firestore.FieldValue.delete();
-      await db.collection('meta').doc('roster').set({emails: {[name]: value}}, {merge:true});
-    } else {
-      const m = lsGet('hscq_emails', {});
-      if (clean) m[name] = clean; else delete m[name];
-      lsSet('hscq_emails', m);
-    }
-    // mirror onto the student record so the dashboard can show it without a second read
-    try {
-      const s = await getStudent(name);
-      if (s) { s.email = clean || null; await saveStudent(name, s); }
-    } catch(e){}
-  }
-  async function setEmailsBulk(map){
-    const clean = {};
-    for (const [n, e] of Object.entries(map || {})) {
-      const addr = String(e || '').trim().toLowerCase();
-      if (addr) clean[n] = addr;
-    }
-    if (!Object.keys(clean).length) return;
-    if (cloud) await db.collection('meta').doc('roster').set({emails: clean}, {merge:true});
-    else { const m = {...lsGet('hscq_emails', {}), ...clean}; lsSet('hscq_emails', m); }
-  }
-  // Which student is this signed-in address? Null means "nobody" — deliberately,
-  // so an unrecognised account never silently becomes a new student.
-  async function nameForEmail(email){
-    const want = String(email || '').trim().toLowerCase();
-    if (!want) return null;
-    const map = await getEmailMap();
-    for (const [name, addr] of Object.entries(map)) {
-      if (String(addr || '').trim().toLowerCase() === want) return name;
-    }
-    return null;
-  }
-
   // ---- students ----
   function blankStudent(name){
     return {
       name, pin: null, class: null, xp: 0, badges: [],
       daily: null,       // {date, c, n, timeSec, streak, best, done}
-      dailyLock: null,   // dateKey() of a Daily Challenge started today but not (yet) finished —
-                          // set the instant it starts so quitting can't be used to re-roll it (see startDaily)
       survival: null,    // {best, runs, totalCorrect}
       exams: [],         // {d, c, n, timeSec, pct}
       duels: {w:0, l:0, d:0},
@@ -372,149 +318,12 @@ const Store = (() => {
     return Object.values(lsGet('hscq_duels', {}));
   }
 
-  // ---- tasks (teacher's "Tasks" tab / test-builder) ----
-  // Collection `tasks`, auto-id docs — read-only from this side, the teacher
-  // dashboard owns creation/editing. See quiz-teacher/store.js for the full
-  // schema comment; this file only needs enough to show a student their own
-  // assigned tasks and read a task's question ids.
-  async function getAllTasks(){
-    if (cloud) { const snap = await db.collection('tasks').get(); return snap.docs.map(d => ({id: d.id, ...d.data()})); }
-    return Object.values(lsGet('hscq_tasks', {}));
-  }
-  async function getTask(id){
-    if (cloud) { const doc = await db.collection('tasks').doc(id).get(); return doc.exists ? {id: doc.id, ...doc.data()} : null; }
-    const all = lsGet('hscq_tasks', {}); return all[id] || null;
-  }
-
-  // ---- task attempts ----
-  // One doc per (task, student), id `${taskId}__${slugify(name)}`:
-  // {taskId, name, startedAt, finishedAt (null until handed in),
-  //  mc: {"2012-Q1": {pick:"A", ok:true}, ...}, mcScore, mcTotal,
-  //  state: "in_progress"|"handed_in"|"marked"}
-  // Written by the STUDENT as they work through a task (see index.html
-  // openTask/taskAnswerMC/finishTaskRun) — this is the one collection this
-  // side writes to but the teacher dashboard only reads. `state` must only
-  // ever be set to "in_progress" or "handed_in" from here — "marked" is
-  // derived for display by the dashboard and rejected by the Firestore rules
-  // if a student write claims it.
-  async function getAllTaskAttempts(){
-    if (cloud) { const snap = await db.collection('taskAttempts').get(); return snap.docs.map(d => d.data()); }
-    return Object.values(lsGet('hscq_taskAttempts', {}));
-  }
-  async function getTaskAttempt(taskId, name){
-    const id = taskId + '__' + slugify(name);
-    if (cloud) { const doc = await db.collection('taskAttempts').doc(id).get(); return doc.exists ? doc.data() : null; }
-    const all = lsGet('hscq_taskAttempts', {}); return all[id] || null;
-  }
-  // `patch` should carry the FULL current value of any nested field (e.g. the
-  // whole `mc` map, not just the newest key) — merge:true only merges at the
-  // top level, so a partial nested object would silently clobber earlier
-  // entries instead of adding to them. Callers keep the cumulative attempt
-  // object in memory and always pass it whole; see index.html taskRun.attempt.
-  async function saveTaskAttempt(taskId, name, patch){
-    const id = taskId + '__' + slugify(name);
-    const doc = {...patch, taskId, name};
-    if (cloud) { await db.collection('taskAttempts').doc(id).set(doc, {merge:true}); return; }
-    const all = lsGet('hscq_taskAttempts', {});
-    all[id] = {...(all[id]||{}), ...doc};
-    lsSet('hscq_taskAttempts', all);
-  }
-
-  // ---- announcements (teacher dashboard writes; students read) ----
-  // meta/announcements = {items: [{id, text, created (ISO string), expires ("YYYY-MM-DD"|null)}]}
-  async function getAnnouncements(){
-    if (cloud) {
-      const doc = await db.collection('meta').doc('announcements').get();
-      return doc.exists ? (doc.data().items || []) : [];
-    }
-    return (lsGet('hscq_announcements', {items: []}).items) || [];
-  }
-
   return { init, isCloud: () => cloud, getRoster, saveRoster, removeFromRoster, getRemoved,
            getClassMap, setStudentClass, setClassesBulk, classList,
-           getEmailMap, setStudentEmail, setEmailsBulk, nameForEmail,
            blankStudent, getStudent, saveStudent, deleteStudent, getAllStudents,
            createDuel, getDuelsFor, saveDuelResult, deleteDuel, getAllDuels, slug: slugify,
            createResponse, getAllResponses, getResponsesFor, getPeerMarkable,
-           setResponseAI, setResponseMark, reopenResponse, addPeerMark, deleteResponse,
-           getAllTasks, getTask, getAllTaskAttempts, getTaskAttempt, saveTaskAttempt,
-           getAnnouncements };
-})();
-
-// ---------------------------------------------------------------------------
-// Google sign-in (Firebase Authentication).
-//
-// Why this and not a PIN: a PIN is something a student can guess, share, or
-// watch someone type. A Google sign-in is checked by Google against the school
-// directory and the answer comes back signed. This page never sees a password.
-//
-// Nothing in this file is a secret and nothing here is the real security
-// boundary. The checks that actually hold are the Firestore security rules
-// (FIRESTORE-RULES.txt), which reject any read or write that does not carry a
-// verified school-domain token — no matter what this page decides to do.
-// ---------------------------------------------------------------------------
-const Auth = (() => {
-  let auth = null;
-
-  function domain(){
-    return (typeof ALLOWED_DOMAIN !== 'undefined' ? String(ALLOWED_DOMAIN) : '').trim().toLowerCase();
-  }
-
-  function init(){
-    try {
-      if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return null;
-      if (typeof firebase.auth !== 'function') { console.warn('firebase-auth-compat.js is not loaded'); return null; }
-      auth = firebase.auth();
-      auth.useDeviceLanguage();
-    } catch(e){ console.warn('Auth init failed:', e); auth = null; }
-    return auth;
-  }
-
-  function available(){ return !!auth; }
-  function current(){ return auth ? auth.currentUser : null; }
-
-  // The `hd` parameter only asks Google to *offer* school accounts — it is a
-  // convenience, not a gate. This is the gate.
-  function inDomain(email){
-    const d = domain();
-    if (!d) return true;
-    return String(email || '').trim().toLowerCase().endsWith('@' + d);
-  }
-
-  async function signIn(){
-    if (!auth) throw new Error('Sign-in is unavailable — Firebase is not configured for this site.');
-    const provider = new firebase.auth.GoogleAuthProvider();
-    const params = {prompt: 'select_account'};
-    if (domain()) params.hd = domain();
-    provider.setCustomParameters(params);
-    try {
-      return await auth.signInWithPopup(provider);
-    } catch(e){
-      const code = e && e.code;
-      // A blocked popup is the single most common failure on school-managed
-      // devices, so fall back to a full-page redirect rather than dead-ending.
-      if (code === 'auth/popup-blocked' || code === 'auth/cancelled-popup-request' ||
-          code === 'auth/operation-not-supported-in-this-environment') {
-        await auth.signInWithRedirect(provider);
-        return null;
-      }
-      if (code === 'auth/popup-closed-by-user') return null;
-      throw e;
-    }
-  }
-
-  function signOut(){ return auth ? auth.signOut() : Promise.resolve(); }
-  function onChange(cb){ if (auth) auth.onAuthStateChanged(cb); }
-
-  // signInWithRedirect() (the fallback above when the popup is blocked) hands
-  // control back to the *next* page load — onAuthStateChanged alone can't tell
-  // "nobody's signed in yet" apart from "the redirect just failed" (e.g. an
-  // unauthorized-domain account, or the popup's `hd` restriction rejecting the
-  // account after the round trip). Without checking this, that failure was
-  // silent: the student just lands back on the sign-in screen with no error.
-  function redirectResult(){ return auth ? auth.getRedirectResult() : Promise.resolve(null); }
-
-  return { init, available, current, signIn, signOut, onChange, inDomain, domain, redirectResult };
+           setResponseAI, setResponseMark, reopenResponse, addPeerMark, deleteResponse };
 })();
 
 // ---- short answer & peer marking maths ----
@@ -711,25 +520,6 @@ function bandFromPct(pct){
   if (pct >= 50) return {band:'Band 2', desc:'Basic',       color:'var(--bad)'};
   return {band:'Band 1', desc:'Elementary', color:'var(--bad)'};
 }
-// SCORING HARDENING (b): write-time XP cap. quiz.xp / an exam's xpGain is plain
-// client state that sits editable in devtools right up until it is written to the
-// student record, and there is no real server here to check it against. This can't
-// stop tampering, but it stops an obviously-tampered value (e.g. `quiz.xp = 999999`
-// typed into the console before finishing) from ever reaching Firestore: clamp every
-// attempt's XP to what that attempt could plausibly have earned for its length and
-// mode. The ceiling is deliberately generous (streak bonuses, daily perfect+streak,
-// exam completion bonus) so normal play never gets near it.
-function maxPlausibleXp(attempt){
-  const PER_Q_CEILING = 65;                      // base(10) + max streak bonus(15) + margin
-  const MODE_BONUS = { daily: 100, exam: 40 };   // perfect+streak bonus / paper-completion bonus
-  return Math.max(0, (attempt && attempt.n) || 0) * PER_Q_CEILING + (MODE_BONUS[attempt && attempt.mode] || 0);
-}
-function clampXpGain(attempt, xpGain){
-  const cap = maxPlausibleXp(attempt);
-  const n = Number(xpGain);
-  return Math.max(0, Math.min(Number.isFinite(n) ? n : 0, cap));
-}
-
 // Duel: compare two results — more correct wins, ties broken by the faster time.
 function duelOutcome(mine, theirs){
   if (!mine || !theirs) return 'pending';
@@ -764,14 +554,7 @@ function classStandings(students, classMap, classes){
 function levelFromXp(xp){ return Math.floor(xp / 300) + 1; }
 function levelProgress(xp){ return xp % 300; }
 function levelName(lv){
-  const names = [
-    "Rookie","Intern","Trainee","Apprentice","Assistant",
-    "Clerk","Trader","Supervisor","Team Leader","Coordinator",
-    "Analyst","Consultant","Manager","Senior Manager","Strategist",
-    "General Manager","Executive","Vice President","Director","Managing Director",
-    "Entrepreneur","Founder","CEO","Chairperson","Investor",
-    "Venture Capitalist","Tycoon","Magnate","Mogul","Business Legend"
-  ];
+  const names = ["Rookie","Apprentice","Trader","Manager","Strategist","Executive","Director","Entrepreneur","Tycoon","Magnate"];
   return names[Math.min(lv-1, names.length-1)] + (lv > names.length ? " " + (lv - names.length + 1) : "");
 }
 

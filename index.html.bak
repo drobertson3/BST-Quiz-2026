@@ -6,7 +6,6 @@
 <title>HSC Business Studies — Quiz Arena</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
 <style>
 :root{
@@ -16,23 +15,19 @@
   --ops:#4fc3f7; --mkt:#ff8a65; --fin:#81c784; --hr:#ba68c8;
 }
 *{box-sizing:border-box; margin:0; padding:0}
-html,body{max-width:100%; overflow-x:hidden}
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:linear-gradient(160deg,var(--bg) 0%,var(--bg2) 100%); min-height:100vh; color:var(--ink)}
 .wrap{max-width:860px; margin:0 auto; padding:16px}
-/* focus visibility for keyboard users, on top of the existing input/textarea rule */
-button:focus-visible, a:focus-visible, [tabindex]:focus-visible, .flashcard:focus-visible{outline:3px solid var(--accent2); outline-offset:2px}
-.tablewrap{width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch}
 .screen{display:none; animation:fadeIn .25s ease}
 .screen.active{display:block}
 @keyframes fadeIn{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:none}}
 h1{font-size:1.5rem} h2{font-size:1.2rem; margin-bottom:12px}
 .muted{color:var(--ink2); font-size:.9rem}
 .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:14px}
-.btn{display:inline-block; border:none; border-radius:12px; padding:13px 22px; min-height:44px; font-size:1rem; font-weight:600; cursor:pointer; background:var(--card2); color:var(--ink); transition:transform .1s, filter .15s}
+.btn{display:inline-block; border:none; border-radius:12px; padding:13px 22px; font-size:1rem; font-weight:600; cursor:pointer; background:var(--card2); color:var(--ink); transition:transform .1s, filter .15s}
 .btn:hover{filter:brightness(1.15)} .btn:active{transform:scale(.97)}
 .btn.primary{background:linear-gradient(135deg,var(--accent),#8e44ad); color:#fff}
 .btn.ghost{background:transparent; border:1px solid var(--line)}
-.btn.small{padding:8px 14px; min-height:40px; font-size:.85rem}
+.btn.small{padding:8px 14px; font-size:.85rem}
 .btn:disabled{opacity:.4; cursor:not-allowed}
 .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
 .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
@@ -43,7 +38,7 @@ input:focus,select:focus{outline:2px solid var(--accent)}
 .topbar{display:flex; justify-content:space-between; align-items:center; padding:10px 0 18px}
 .chip{background:var(--card2); border-radius:999px; padding:6px 14px; font-size:.85rem; font-weight:600}
 .namegrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; max-height:320px; overflow-y:auto; padding:4px}
-.namebtn{background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:14px 10px; min-height:44px; color:var(--ink); font-size:.95rem; font-weight:600; cursor:pointer; text-align:center}
+.namebtn{background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:14px 10px; color:var(--ink); font-size:.95rem; font-weight:600; cursor:pointer; text-align:center}
 .namebtn:hover{border-color:var(--accent); background:var(--card)}
 .pinrow{display:flex; gap:10px; justify-content:center; margin:16px 0}
 .pinbox{width:52px; height:60px; text-align:center; font-size:1.6rem; background:var(--bg2); border:1px solid var(--line); border-radius:12px; color:var(--ink)}
@@ -64,12 +59,11 @@ label.opt{display:flex; align-items:center; gap:8px; font-size:.95rem; cursor:po
 .qimgbox img{max-width:100%; height:auto}
 .ansgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
 @media(max-width:480px){.ansgrid{grid-template-columns:repeat(2,1fr)}}
-.ansbtn{font-size:1.3rem; font-weight:800; padding:18px 0; min-height:56px; border-radius:14px; border:2px solid var(--line); background:var(--card2); color:var(--ink); cursor:pointer; transition:all .15s}
+.ansbtn{font-size:1.3rem; font-weight:800; padding:18px 0; border-radius:14px; border:2px solid var(--line); background:var(--card2); color:var(--ink); cursor:pointer; transition:all .15s}
 .ansbtn:hover:not(:disabled){border-color:var(--accent2); transform:translateY(-2px)}
 .ansbtn.correct{background:var(--good); border-color:var(--good); color:#03301f; animation:pop .3s ease}
 .ansbtn.wrong{background:var(--bad); border-color:var(--bad); color:#3d000d; animation:shake .35s ease}
 .ansbtn.reveal{border-color:var(--good); color:var(--good)}
-.ansbtn.correct::after{content:" ✓"} .ansbtn.wrong::after{content:" ✕"} .ansbtn.reveal::after{content:" ✓"}
 @keyframes pop{50%{transform:scale(1.08)}}
 @keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 .feedback{border-radius:14px; padding:16px; margin-top:14px; display:none}
@@ -123,7 +117,7 @@ textarea:focus{outline:2px solid var(--accent)}
 /* ---- exam simulation ---- */
 .ansbtn.sel{border-color:var(--accent); background:rgba(108,92,231,.22); color:var(--ink)}
 .palette{display:grid; grid-template-columns:repeat(auto-fit,minmax(44px,1fr)); gap:8px}
-.pcell{border:1px solid var(--line); background:var(--bg2); color:var(--ink2); border-radius:8px; padding:10px 0; min-height:44px; font-weight:700; cursor:pointer; font-size:.85rem}
+.pcell{border:1px solid var(--line); background:var(--bg2); color:var(--ink2); border-radius:8px; padding:10px 0; font-weight:700; cursor:pointer; font-size:.85rem}
 .pcell.done{background:var(--accent); border-color:var(--accent); color:#fff}
 .pcell.cur{outline:2px solid var(--accent2)}
 .pauseveil{display:none; position:fixed; inset:0; background:rgba(10,12,30,.92); z-index:50; align-items:center; justify-content:center; padding:20px}
@@ -142,7 +136,6 @@ textarea:focus{outline:2px solid var(--accent)}
 .bigstat{font-size:2.6rem; font-weight:900; text-align:center; color:var(--accent2)}
 /* ---- short answer / peer marking ---- */
 .answerbox{background:var(--bg2); border:1px solid var(--line); border-radius:10px; padding:14px; font-size:.95rem; line-height:1.6; white-space:pre-wrap; max-height:420px; overflow-y:auto}
-#peerCriteria{overflow-x:auto}
 .crittable{width:100%; border-collapse:collapse; margin-top:8px; font-size:.9rem}
 .crittable th{text-align:left; color:var(--ink2); font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; padding:6px 8px; border-bottom:1px solid var(--line)}
 .crittable td{padding:8px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5}
@@ -162,9 +155,7 @@ textarea:focus{outline:2px solid var(--accent)}
 .mcard.term{font-weight:700; font-size:1rem}
 .mcard.sel{border-color:var(--accent); background:rgba(108,92,231,.25)}
 .mcard.hit{border-color:var(--good); background:rgba(0,214,143,.14); color:var(--ink2); cursor:default; animation:pop .3s ease}
-.mcard.hit::after{content:" ✓"; color:var(--good); font-weight:800}
 .mcard.miss{border-color:var(--bad); background:rgba(255,94,122,.16); animation:shake .35s ease}
-.mcard.miss::after{content:" ✕"; color:var(--bad); font-weight:800}
 .mcard.done{opacity:.45}
 .mcolhead{font-size:.75rem; color:var(--ink2); text-transform:uppercase; letter-spacing:.05em; font-weight:700; margin-bottom:2px}
 .matchbar{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px}
@@ -178,7 +169,7 @@ textarea:focus{outline:2px solid var(--accent)}
 .flashcard .fh{font-size:.78rem; color:var(--ink2); margin-top:18px; text-transform:uppercase; letter-spacing:.06em}
 .ratebtns{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:14px}
 @media(max-width:480px){.ratebtns{grid-template-columns:repeat(2,1fr)}}
-.ratebtn{border:2px solid var(--line); background:var(--card2); color:var(--ink); border-radius:12px; padding:12px 6px; min-height:44px; font-weight:700; cursor:pointer; font-size:.9rem}
+.ratebtn{border:2px solid var(--line); background:var(--card2); color:var(--ink); border-radius:12px; padding:12px 6px; font-weight:700; cursor:pointer; font-size:.9rem}
 .ratebtn small{display:block; font-weight:400; font-size:.7rem; color:var(--ink2); margin-top:3px}
 .ratebtn.again:hover{border-color:var(--bad)} .ratebtn.hard:hover{border-color:var(--gold)}
 .ratebtn.good:hover{border-color:var(--good)} .ratebtn.easy:hover{border-color:var(--accent2)}
@@ -188,10 +179,9 @@ textarea:focus{outline:2px solid var(--accent)}
 .chainslot .num{flex:0 0 26px; height:26px; border-radius:50%; background:var(--card2); color:var(--ink2); display:flex; align-items:center; justify-content:center; font-size:.78rem; font-weight:800}
 .chainslot.filled .num{background:var(--good); color:#03301f}
 .chainpool{display:flex; flex-direction:column; gap:8px}
-.chainchip{background:var(--card2); border:2px solid var(--line); border-radius:12px; padding:11px 14px; min-height:44px; cursor:pointer; color:var(--ink); text-align:left; font-size:.93rem; line-height:1.45}
+.chainchip{background:var(--card2); border:2px solid var(--line); border-radius:12px; padding:11px 14px; cursor:pointer; color:var(--ink); text-align:left; font-size:.93rem; line-height:1.45}
 .chainchip:hover:not(:disabled){border-color:var(--accent2)}
 .chainchip.miss{border-color:var(--bad); background:rgba(255,94,122,.16); animation:shake .35s ease}
-.chainchip.miss::after{content:" ✕"; color:var(--bad); font-weight:800}
 .chainchip.used{display:none}
 .chainwhy{background:rgba(108,92,231,.12); border:1px solid var(--accent); border-radius:12px; padding:12px 14px; margin-top:12px; font-size:.9rem; line-height:1.55}
 /* ---- diagram labelling ---- */
@@ -207,7 +197,7 @@ textarea:focus{outline:2px solid var(--accent)}
 .dztext{fill:var(--ink); font-size:13px; text-anchor:middle; pointer-events:none}
 .dlead{stroke:var(--ink2); stroke-width:1.2; stroke-dasharray:3 3}
 .dgchips{display:flex; gap:8px; flex-wrap:wrap}
-.dgchip{background:var(--card2); border:2px solid var(--line); border-radius:10px; padding:9px 13px; min-height:44px; cursor:pointer; color:var(--ink); font-size:.9rem; font-weight:600}
+.dgchip{background:var(--card2); border:2px solid var(--line); border-radius:10px; padding:9px 13px; cursor:pointer; color:var(--ink); font-size:.9rem; font-weight:600}
 .dgchip:hover:not(:disabled){border-color:var(--accent2)}
 .dgchip.sel{border-color:var(--accent); background:rgba(108,92,231,.25)}
 .dgchip.used{display:none}
@@ -252,13 +242,7 @@ textarea:focus{outline:2px solid var(--accent)}
 .sylopt.correct{background:rgba(0,214,143,.18); border-color:var(--good)}
 .sylopt.wrong{background:rgba(255,94,122,.16); border-color:var(--bad)}
 .sylopt.reveal{border-color:var(--good)}
-.sylopt.correct::after{content:" ✓"; color:var(--good); font-weight:800}
-.sylopt.wrong::after{content:" ✕"; color:var(--bad); font-weight:800}
 .sylfrom{display:block; margin-top:6px; font-size:.75rem; color:var(--ink2); font-style:italic}
-/* ---- assigned tasks ---- */
-.taskcard{background:var(--card2); border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:12px; padding:14px 16px; margin-bottom:10px}
-.taskcard.overdue{border-left-color:var(--bad)}
-.taskcard .pill{margin-left:6px; vertical-align:middle}
 </style>
 </head>
 <body>
@@ -274,7 +258,7 @@ textarea:focus{outline:2px solid var(--accent)}
     </div>
     <div class="card" id="loginStep1">
       <h2>Who's playing?</h2>
-      <input type="text" id="nameSearch" placeholder="Search your name..." aria-label="Search your name" style="margin-bottom:12px">
+      <input type="text" id="nameSearch" placeholder="Search your name..." style="margin-bottom:12px">
       <div class="namegrid" id="nameGrid"></div>
       <p class="muted" style="margin-top:12px">Name not listed? Ask your teacher to add you.</p>
     </div>
@@ -308,14 +292,6 @@ textarea:focus{outline:2px solid var(--accent)}
       <div class="xpbar"><div id="xpFill" style="width:0%"></div></div>
     </div>
     <div class="card"><div class="statgrid" id="homeStats"></div></div>
-    <div class="card" id="announceCard" style="display:none">
-      <h2>📣 Announcements</h2>
-      <div id="announceList"></div>
-    </div>
-    <div class="card" id="myTasksCard" style="display:none">
-      <h2>📋 Assigned tasks</h2>
-      <div id="myTasksList"></div>
-    </div>
     <div class="menu">
       <button class="menubtn" onclick="showSetup('quiz')"><div class="e">🚀</div><div class="t">Multiple Choice Quiz</div><div class="d">Random past HSC questions</div></button>
       <button class="menubtn" onclick="showSetupSA()"><div class="e">✍️</div><div class="t">Short Answer Quiz</div><div class="d" id="saDesc">Write answers for your teacher to mark</div></button>
@@ -329,7 +305,6 @@ textarea:focus{outline:2px solid var(--accent)}
       <button class="menubtn" onclick="showDiagramPick()"><div class="e">📐</div><div class="t">Diagram Labelling</div><div class="d" id="diagDesc">Label the key HSC diagrams</div></button>
       <button class="menubtn" onclick="showSyl()"><div class="e">🧠</div><div class="t">Syllabus Drills</div><div class="d" id="sylDesc">Learn the dot points by heart</div></button>
       <button class="menubtn" onclick="startMistakes()"><div class="e">🔁</div><div class="t">My Mistakes</div><div class="d" id="mistakeCount">Retry questions you got wrong</div></button>
-      <button class="menubtn" onclick="showWeakSetup()"><div class="e">🎯</div><div class="t">Weak Spots</div><div class="d" id="weakDesc">A quiz aimed at your weakest areas</div></button>
       <button class="menubtn" onclick="showDaily()"><div class="e">📆</div><div class="t">Daily Challenge</div><div class="d" id="dailyDesc">5 questions · same for everyone</div></button>
       <button class="menubtn" onclick="showSurvival()"><div class="e">💀</div><div class="t">Survival</div><div class="d" id="survDesc">One wrong answer ends the run</div></button>
       <button class="menubtn" onclick="showExam()"><div class="e">📄</div><div class="t">Exam Simulation</div><div class="d">20 questions · 20 minutes</div></button>
@@ -350,7 +325,7 @@ textarea:focus{outline:2px solid var(--accent)}
         <button class="btn preset" data-n="5">5</button>
         <button class="btn preset sel" data-n="10">10</button>
         <button class="btn preset" data-n="20">20</button>
-        <input type="number" id="customN" min="1" max="280" placeholder="Custom" aria-label="Custom number of questions" style="width:110px">
+        <input type="number" id="customN" min="1" max="280" placeholder="Custom" style="width:110px">
       </div>
       <p class="muted" style="margin-top:8px" id="poolInfo"></p>
     </div>
@@ -367,7 +342,7 @@ textarea:focus{outline:2px solid var(--accent)}
         <div>
           <h2>Years</h2>
           <div class="row">
-            <select id="yearFrom" aria-label="From year"></select><span class="muted">to</span><select id="yearTo" aria-label="To year"></select>
+            <select id="yearFrom"></select><span class="muted">to</span><select id="yearTo"></select>
           </div>
         </div>
         <div>
@@ -378,7 +353,6 @@ textarea:focus{outline:2px solid var(--accent)}
     </div>
     <div class="center" style="padding:6px 0 30px">
       <button class="btn primary" style="font-size:1.15rem; padding:16px 44px" onclick="startQuiz()">Start! 🚀</button>
-      <button class="btn ghost" onclick="printSetupPaper()">🖨️ Print blank paper</button>
     </div>
   </div>
 
@@ -387,7 +361,7 @@ textarea:focus{outline:2px solid var(--accent)}
     <div class="quizhead" style="margin-bottom:12px">
       <span class="chip" id="qCounter"></span>
       <div class="pbar"><div id="qProgress"></div></div>
-      <span class="chip streak" id="qStreak" style="display:none" aria-live="polite"></span>
+      <span class="chip streak" id="qStreak" style="display:none"></span>
       <span class="chip timer" id="qTimer" style="display:none"></span>
       <button class="btn small ghost" onclick="quitQuiz()">Quit</button>
     </div>
@@ -400,7 +374,7 @@ textarea:focus{outline:2px solid var(--accent)}
         <button class="ansbtn" data-l="C">C</button>
         <button class="ansbtn" data-l="D">D</button>
       </div>
-      <div class="feedback" id="qFeedback" aria-live="polite">
+      <div class="feedback" id="qFeedback">
         <div class="fh" id="fbHead"></div>
         <div id="fbExpl" style="font-size:.95rem; line-height:1.5"></div>
         <div id="fbTags"></div>
@@ -421,34 +395,9 @@ textarea:focus{outline:2px solid var(--accent)}
       <div id="resBadges"></div>
     </div>
     <div class="card" id="resTopics"></div>
-    <div class="card" id="resWeakCompare" style="display:none"></div>
     <div class="center row" style="justify-content:center; padding-bottom:30px">
       <button class="btn primary" id="resAgainBtn" onclick="showSetup('quiz')">Play again</button>
       <button class="btn" onclick="renderHome();go('home')">Home</button>
-    </div>
-  </div>
-
-  <!-- ============ WEAK SPOTS ============ -->
-  <div id="scr-weaksetup" class="screen">
-    <a class="back" onclick="go('home')">← home</a>
-    <h1 style="margin:10px 0 4px">🎯 Weak Spots</h1>
-    <p class="muted" style="margin-bottom:16px">A quiz built and weighted around the areas you most need to improve — including
-      areas you've never been tested on, not just questions you've already got wrong (that's what My Mistakes is for).</p>
-    <div class="card" id="weakNote" style="display:none"></div>
-    <div class="card">
-      <h2>Where this quiz is aimed</h2>
-      <div id="weakAreas"></div>
-    </div>
-    <div class="card">
-      <h2>How many questions?</h2>
-      <div class="row" id="weakPresets">
-        <button class="btn preset" data-n="5">5</button>
-        <button class="btn preset sel" data-n="10">10</button>
-        <button class="btn preset" data-n="15">15</button>
-      </div>
-    </div>
-    <div class="center" style="padding:6px 0 30px">
-      <button class="btn primary" style="font-size:1.15rem; padding:16px 44px" onclick="startWeakSpots()">Start! 🎯</button>
     </div>
   </div>
 
@@ -478,7 +427,7 @@ textarea:focus{outline:2px solid var(--accent)}
     <div class="card" id="duelRecord"></div>
     <div class="card">
       <h2>New challenge</h2>
-      <input type="text" id="duelSearch" placeholder="Search for an opponent..." aria-label="Search for an opponent" style="margin-bottom:12px">
+      <input type="text" id="duelSearch" placeholder="Search for an opponent..." style="margin-bottom:12px">
       <div class="namegrid" id="duelNames"></div>
     </div>
     <div class="card"><h2>Your duels</h2><div id="duelList">Loading…</div></div>
@@ -621,7 +570,7 @@ textarea:focus{outline:2px solid var(--accent)}
         <div>
           <h2>Years</h2>
           <div class="row">
-            <select id="saYearFrom" aria-label="From year"></select><span class="muted">to</span><select id="saYearTo" aria-label="To year"></select>
+            <select id="saYearFrom"></select><span class="muted">to</span><select id="saYearTo"></select>
           </div>
         </div>
       </div>
@@ -650,7 +599,7 @@ textarea:focus{outline:2px solid var(--accent)}
       <!-- step 1: write -->
       <div id="saStepWrite">
         <p class="steps">Write your answer the way you would in the exam — then type it up below and hand it in. <b>Your teacher marks it</b> and you'll see the mark and feedback once they have.</p>
-        <textarea id="saTyped" placeholder="Type your answer here..." aria-label="Your written answer" style="margin-top:12px"></textarea>
+        <textarea id="saTyped" placeholder="Type your answer here..." style="margin-top:12px"></textarea>
         <div class="row" style="justify-content:space-between; margin-top:8px">
           <span class="muted" id="saWordCount">0 words</span>
           <span class="muted" id="saGuide"></span>
@@ -670,7 +619,7 @@ textarea:focus{outline:2px solid var(--accent)}
       </div>
 
       <!-- step 3: handed in -->
-      <div id="saStepResult" style="display:none" aria-live="polite">
+      <div id="saStepResult" style="display:none">
         <div class="feedback good" style="display:block">
           <div class="bigmark">📮</div>
           <div class="fh center">Handed in</div>
@@ -766,7 +715,7 @@ textarea:focus{outline:2px solid var(--accent)}
       </div>
 
       <div id="peerStepResult" style="display:none">
-        <div class="feedback" id="peerFb" style="display:block" aria-live="polite">
+        <div class="feedback" id="peerFb" style="display:block">
           <div class="bigmark" id="peerFbMark"></div>
           <div class="center" id="peerFbVerdict" style="font-weight:700; margin-bottom:6px"></div>
           <div class="center" id="peerFbXp" style="color:var(--accent2); font-weight:700; margin-bottom:10px"></div>
@@ -882,7 +831,7 @@ textarea:focus{outline:2px solid var(--accent)}
       <button class="btn small ghost" onclick="quitFlash()">Finish</button>
     </div>
     <div class="card">
-      <div class="flashcard" id="flashCard" onclick="flipFlash()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();flipFlash();}" role="button" tabindex="0" aria-label="Flashcard — tap or press Enter to reveal the definition"></div>
+      <div class="flashcard" id="flashCard" onclick="flipFlash()"></div>
       <div id="flashRate" style="display:none">
         <div class="ratebtns">
           <button class="ratebtn again" onclick="rateFlash(0)">Again<small id="rlAgain"></small></button>
@@ -928,14 +877,14 @@ textarea:focus{outline:2px solid var(--accent)}
     <div class="matchbar">
       <span class="chip" id="defCount"></span>
       <div class="pbar"><div id="defProg" style="width:0%"></div></div>
-      <span class="streak" id="defStreak" aria-live="polite"></span>
+      <span class="streak" id="defStreak"></span>
       <button class="btn small ghost" onclick="quitDef()">Quit</button>
     </div>
     <div class="card">
       <div class="muted" id="defPrompt" style="font-size:.8rem; text-transform:uppercase; letter-spacing:.05em"></div>
       <div id="defStem" style="font-size:1.15rem; font-weight:700; line-height:1.5; margin:10px 0 18px"></div>
       <div class="mcol" id="defOptions"></div>
-      <div class="feedback" id="defFb" aria-live="polite">
+      <div class="feedback" id="defFb">
         <div class="fh" id="defFbHead"></div>
         <div id="defFbBody" style="font-size:.94rem; line-height:1.55"></div>
         <div id="defFbTags"></div>
@@ -1065,7 +1014,7 @@ textarea:focus{outline:2px solid var(--accent)}
     <div class="matchbar">
       <span class="chip" id="mapCount"></span>
       <div class="pbar"><div id="mapProg" style="width:0%"></div></div>
-      <span class="streak" id="mapStreak" aria-live="polite"></span>
+      <span class="streak" id="mapStreak"></span>
       <button class="btn small ghost" onclick="quitMapper()">Quit</button>
     </div>
     <div class="card">
@@ -1086,7 +1035,7 @@ textarea:focus{outline:2px solid var(--accent)}
       <div class="center" style="margin-top:14px" id="mapSubmitWrap">
         <button class="btn primary" id="mapSubmitBtn" onclick="mapSubmit()" disabled>Check my answer</button>
       </div>
-      <div class="feedback" id="mapFb" aria-live="polite">
+      <div class="feedback" id="mapFb">
         <div class="fh" id="mapFbHead"></div>
         <div id="mapFbBody" style="font-size:.94rem; line-height:1.55"></div>
         <div id="mapFbExtra"></div>
@@ -1125,7 +1074,7 @@ textarea:focus{outline:2px solid var(--accent)}
     <div class="topbar">
       <span class="chip" id="sylTitle"></span>
       <span class="chip" id="sylCounter"></span>
-      <span class="streak" id="sylStreak" style="display:none" aria-live="polite"></span>
+      <span class="streak" id="sylStreak" style="display:none"></span>
       <button class="btn small ghost" onclick="quitSyl()">Quit</button>
     </div>
     <div class="pbar" style="margin-bottom:14px"><div id="sylProgress" style="width:0"></div></div>
@@ -1136,7 +1085,7 @@ textarea:focus{outline:2px solid var(--accent)}
       <div id="sylCheckWrap" style="margin-top:14px; display:none">
         <button class="btn primary" id="sylCheckBtn" onclick="sylCheck()" disabled>Check my picks</button>
       </div>
-      <div class="feedback" id="sylFeedback" aria-live="polite">
+      <div class="feedback" id="sylFeedback">
         <div class="fh" id="sylFbHead"></div>
         <div id="sylFbBody" style="line-height:1.6; font-size:.94rem"></div>
         <div class="center" style="margin-top:14px">
@@ -1160,116 +1109,6 @@ textarea:focus{outline:2px solid var(--accent)}
       <button class="btn" onclick="renderHome();go('home')">Home</button>
     </div>
   </div>
-
-  <!-- ============ ASSIGNED TASK — multiple choice ============ -->
-  <div id="scr-taskrun" class="screen">
-    <div class="quizhead" style="margin-bottom:12px">
-      <span class="chip" id="trCounter"></span>
-      <div class="pbar"><div id="trProgress"></div></div>
-      <button class="btn small ghost" onclick="quitTaskRun()">Quit</button>
-    </div>
-    <div class="card" style="padding:14px">
-      <div class="muted" id="trMeta"></div>
-      <div class="qimgbox"><img id="trImg" alt="HSC question"></div>
-      <div class="ansgrid" id="trAns">
-        <button class="ansbtn" data-l="A">A</button>
-        <button class="ansbtn" data-l="B">B</button>
-        <button class="ansbtn" data-l="C">C</button>
-        <button class="ansbtn" data-l="D">D</button>
-      </div>
-      <div class="feedback" id="trFeedback" aria-live="polite">
-        <div class="fh" id="trFbHead"></div>
-        <div id="trFbExpl" style="font-size:.95rem; line-height:1.5"></div>
-        <div id="trFbTags"></div>
-        <div class="center" style="margin-top:14px">
-          <button class="btn primary" id="trNextBtn" onclick="taskNextMC()">Next →</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ ASSIGNED TASK — short answer ============ -->
-  <div id="scr-tasksa" class="screen">
-    <div class="quizhead" style="margin-bottom:12px">
-      <span class="chip" id="tsCounter"></span>
-      <div class="pbar"><div id="tsProgress"></div></div>
-      <button class="btn small ghost" onclick="quitTaskRun()">Quit</button>
-    </div>
-    <div class="card" style="padding:14px">
-      <div class="row" style="justify-content:space-between">
-        <div class="muted" id="tsMeta"></div>
-        <span class="markchip" id="tsMarkChip"></span>
-      </div>
-      <div class="qimgbox"><img id="tsImg" alt="HSC short-answer question"></div>
-
-      <div id="tsStepWrite">
-        <p class="steps">Write your answer the way you would in the exam — then type it up below and hand it in. <b>Your teacher marks it</b> and you'll see the mark and feedback once they have.</p>
-        <textarea id="tsTyped" placeholder="Type your answer here..." aria-label="Your written answer" style="margin-top:12px"></textarea>
-        <div class="row" style="justify-content:space-between; margin-top:8px">
-          <span class="muted" id="tsWordCount">0 words</span>
-          <span class="muted" id="tsGuide"></span>
-        </div>
-        <div class="center" style="margin-top:12px">
-          <button class="btn primary" onclick="taskSASubmitTyped()">Hand in for marking ✓</button>
-        </div>
-        <details class="rev" style="margin-top:14px"><summary>Stuck? Show what the question is asking for</summary>
-          <pre id="tsHintVerb"></pre></details>
-      </div>
-
-      <div id="tsStepMarking" style="display:none; text-align:center; padding:26px 0">
-        <div class="spinner"></div>
-        <div style="font-weight:700">Handing in your answer…</div>
-        <div class="muted" style="margin-top:4px">Sending it to your teacher's marking queue</div>
-      </div>
-
-      <div id="tsStepResult" style="display:none" aria-live="polite">
-        <div class="feedback good" style="display:block">
-          <div class="bigmark">📮</div>
-          <div class="fh center">Handed in</div>
-          <div class="center" id="tsFbXp" style="color:var(--accent2); font-weight:700; margin:8px 0"></div>
-          <div class="center muted" id="tsFbText" style="font-size:.95rem; line-height:1.55"></div>
-          <div id="tsFbReveals" style="margin-top:12px"></div>
-          <div class="center" style="margin-top:14px">
-            <button class="btn primary" id="tsNextBtn" onclick="taskSANext()">Next →</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="tsStepError" style="display:none">
-        <div class="feedback bad" style="display:block">
-          <div class="fh">⚠️ Couldn't hand that in</div>
-          <div id="tsErrText" style="font-size:.95rem"></div>
-          <div class="center" style="margin-top:14px">
-            <button class="btn" onclick="taskShowStep('tsStepWrite')">← Back to my answer</button>
-            <button class="btn primary" onclick="taskSASubmitTyped()">Try again</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ ASSIGNED TASK — done ============ -->
-  <div id="scr-taskdone" class="screen">
-    <div class="card center" style="padding:30px">
-      <div class="confetti" id="tdEmoji"></div>
-      <div class="bigscore" id="tdTitle" style="font-size:1.6rem"></div>
-      <div class="muted" id="tdScore" style="margin-top:8px; font-size:1.3rem; font-weight:800; color:var(--ink)"></div>
-      <div class="muted" id="tdSub" style="margin-top:6px"></div>
-      <div id="tdXp" style="margin-top:10px; font-weight:700; color:var(--accent2)"></div>
-      <div id="tdBadges"></div>
-    </div>
-    <div class="center row" style="justify-content:center; padding-bottom:30px">
-      <button class="btn" onclick="renderHome();go('home')">Home</button>
-    </div>
-  </div>
-
-  <!-- ============ ASSIGNED TASK — my results ============ -->
-  <div id="scr-taskview" class="screen">
-    <a class="back" onclick="go('home')">← home</a>
-    <h1 style="margin:10px 0 4px" id="trvTitle">Task results</h1>
-    <p class="muted" style="margin-bottom:16px">What you've handed in for this task, and your marks once your teacher has released them.</p>
-    <div class="card" id="trvBody"></div>
-  </div>
 </div>
 
 <script src="config.js"></script>
@@ -1288,7 +1127,6 @@ let me = null;           // current student record
 let roster = [];
 let pendingName = null, pinMode = 'enter', firstPin = null;
 let quiz = null;         // active quiz state
-let taskRun = null;      // active assigned-task runner state
 
 // ---------- boot ----------
 (async function boot(){
@@ -1409,7 +1247,6 @@ function renderHome(){
   $('peerDesc').textContent = pr && pr.count ? pr.exact + ' spot on out of ' + pr.count + ' marked' : "Mark a classmate's answer";
   const sy = me.syl;
   if (typeof studyHomeLine === 'function') $('studyDesc').textContent = studyHomeLine();
-  if (typeof weakSpotsHomeLine === 'function') $('weakDesc').textContent = weakSpotsHomeLine();
   $('sylDesc').textContent = sy && sy.rounds
     ? Math.round(sy.correct/sy.rounds*100) + '% over ' + sy.rounds + ' dot-point rounds'
     : 'Learn the dot points by heart';
@@ -1437,24 +1274,6 @@ function renderHome(){
     : DIAGRAMS.length + ' key HSC diagrams';
   refreshDuelBadge();
   refreshAnswerBadge();
-  refreshMyTasks();
-  refreshAnnouncements();
-}
-
-// show non-expired teacher announcements, newest first; hide the card when there are none
-async function refreshAnnouncements(){
-  try {
-    const items = await Store.getAnnouncements();
-    const today = dateKey(Date.now());
-    const active = (items || [])
-      .filter(a => !a.expires || a.expires >= today)
-      .sort((a,b) => (b.created || '').localeCompare(a.created || ''));
-    if (!active.length) { $('announceCard').style.display = 'none'; return; }
-    $('announceCard').style.display = 'block';
-    $('announceList').innerHTML = active.map(a =>
-      `<p style="margin:8px 0; padding:10px 12px; background:var(--card2); border-radius:10px">${esc(a.text)}</p>`
-    ).join('');
-  } catch(e){ $('announceCard').style.display = 'none'; }
 }
 
 // surface newly-marked work and anything still with the teacher
@@ -1572,85 +1391,8 @@ function startQuiz(){
 function startMistakes(){
   if (!me.wrong.length) { alert("No mistakes to retry — you're all caught up! 🎉"); return; }
   const pool = QUESTIONS.filter(q => me.wrong.includes(q.id));
-  // BUG FIX: me.wrong can hold ids for questions that have since been removed from
-  // the bank; filtering against the current QUESTIONS can leave an empty pool even
-  // though me.wrong.length > 0, which used to launch a 0-question quiz and crash the
-  // very next line (quiz.qs[0] is undefined). Clear the stale ids instead.
-  if (!pool.length) {
-    me.wrong = [];
-    Store.saveStudent(me.name, me).catch(()=>{});
-    alert("Those mistakes are no longer in the question bank — your list has been cleared. 🎉");
-    return;
-  }
   const picked = smartPick(pool, Math.min(pool.length, 20));
   launchQuiz(picked, 'mistakes', false);
-}
-
-// ================= WEAK SPOTS =================
-// Setup + question pool live here (DOM + QUESTIONS); the weighting itself
-// (weakSpotAreas/weakSpotPool/...) is in study.js so it's exercised the same
-// way as everything else on What To Study and is testable without a browser.
-let weakSel = { n: 10 };
-function weakSpotsHomeLine(){
-  try {
-    const rows = studyRows();
-    if (weakSpotFreshAccount(rows)) return 'Not enough history yet — start anywhere';
-    const areas = weakSpotAreas(rows, 3);
-    if (!areas.length) return 'A quiz aimed at your weakest areas';
-    return '🎯 ' + areas.map(r => r.sub).join(', ');
-  } catch(e){ return 'A quiz aimed at your weakest areas'; }
-}
-function showWeakSetup(){
-  const rows = studyRows();
-  const fresh = weakSpotFreshAccount(rows);
-  const thin = !fresh && weakSpotThinHistory(rows);
-
-  if (fresh) {
-    $('weakNote').style.display = 'block';
-    $('weakNote').innerHTML = `<p class="muted">You haven't played enough yet for Weak Spots to know where you're weak.
-      For now it'll sample evenly across every syllabus area — come back once you've done a few quizzes and it'll start
-      aiming itself properly.</p>`;
-    $('weakAreas').innerHTML = '<p class="muted">Nothing to target yet — an even spread across all areas.</p>';
-  } else {
-    if (thin) {
-      $('weakNote').style.display = 'block';
-      $('weakNote').innerHTML = `<p class="muted">Still building a picture of you — areas you've never been tested on count
-        as "weak" until proven otherwise, so a few of these below may just be gaps rather than genuine trouble spots.</p>`;
-    } else {
-      $('weakNote').style.display = 'none';
-    }
-    const areas = weakSpotAreas(rows, 5);
-    $('weakAreas').innerHTML = areas.map(r => {
-      const pct = r.n ? Math.round(r.acc * 100) : null;
-      return `<div class="studycard ${r.band}">
-        <div class="pri">${r.band === 'focus' ? 'Needs work' : r.band === 'watch' ? 'Worth a look' : 'Weakest of a strong set'}</div>
-        <div class="nm"><span style="color:${TOPIC_COLORS[r.topic]}">${esc(r.topic)}</span> <span class="muted">›</span> ${esc(r.sub)}</div>
-        <div class="why muted" style="margin-top:5px">${pct == null ? 'Never practised' : pct + '% across ' + r.n + ' attempt' + (r.n === 1 ? '' : 's')} · ${studyAgo(r.days)}</div>
-      </div>`;
-    }).join('');
-  }
-
-  if (!$('weakPresets').dataset.wired) {
-    $('weakPresets').dataset.wired = '1';
-    document.querySelectorAll('#weakPresets .preset').forEach(b => b.addEventListener('click', () => {
-      document.querySelectorAll('#weakPresets .preset').forEach(x => x.classList.remove('sel'));
-      b.classList.add('sel'); weakSel.n = +b.dataset.n;
-    }));
-  }
-  go('weaksetup');
-}
-function startWeakSpots(){
-  const rows = studyRows();
-  const n = Math.min(weakSel.n, QUESTIONS.length);
-  const pool = weakSpotPool(QUESTIONS, rows, n, me.wrong).sort(() => Math.random() - .5);
-  if (!pool.length) { alert('Not enough multiple choice questions in the bank yet to build this quiz.'); return; }
-
-  // snapshot "before" accuracy for every area, keyed the same way as studyRows,
-  // so the result screen can show before → after once this attempt is committed
-  const baseline = {};
-  for (const r of rows) baseline[r.key] = {acc: r.acc, n: r.n};
-
-  launchQuiz(pool, 'weakspots', false, {weakBaseline: baseline});
 }
 function launchQuiz(questions, mode, timed, extra){
   quiz = { qs: questions, i: 0, correct: 0, streak: 0, bestStreak: 0, xp: 0, bonus: 0,
@@ -1668,11 +1410,10 @@ function showQuestion(){
   $('qCounter').textContent = surv ? '💀 ' + (quiz.i+1) : (quiz.i+1) + ' / ' + quiz.qs.length;
   $('qProgress').style.width = (surv ? Math.min(quiz.i * 4, 100) : quiz.i / quiz.qs.length * 100) + '%';
   $('qMeta').textContent = q.year + ' HSC · Question ' + q.n;
-  $('qImg').src = q.img; $('qImg').alt = q.year + ' HSC Question ' + q.n;
+  $('qImg').src = q.img;
   $('qFeedback').style.display = 'none';
   $('qFeedback').className = 'feedback';
   document.querySelectorAll('#qAns .ansbtn').forEach(b => { b.disabled = false; b.className = 'ansbtn'; });
-  quiz.qShownAt = Date.now();   // SCORING HARDENING (d): stamped so answer() can tell a genuinely-fast reader from a scripted click
   if (quiz.timed) {
     timeLeft = QUIZ_OPTIONS.secondsPerQuestion;
     updateTimer();
@@ -1690,21 +1431,11 @@ function updateTimer(){
   t.classList.toggle('low', timeLeft <= 15);
 }
 document.querySelectorAll('#qAns .ansbtn').forEach(b => b.addEventListener('click', () => answer(b.dataset.l)));
-document.querySelectorAll('#trAns .ansbtn').forEach(b => b.addEventListener('click', () => taskAnswerMC(b.dataset.l)));
 function answer(letter){
-  // SCORING HARDENING (c): debounce — one grade per question. Once feedback is showing,
-  // this quiz's answer is already locked in, so a double-click (or a script firing the
-  // click handler twice) on an answer button is a no-op rather than a second XP award.
   if (!quiz || $('qFeedback').style.display === 'block') return;
   clearInterval(tickHandle);
   const q = quiz.qs[quiz.i];
   const right = letter !== null && q.ans.includes(letter);
-  // SCORING HARDENING (d): minimum time per question. An actual click landing within
-  // 1.5s of the question appearing is too fast to have been read, let alone reasoned
-  // about — the signature of a scripted "always click A" abuser. It still counts for
-  // accuracy/streak so the UI behaves normally, but it earns no XP. A timed-out
-  // question (letter === null) is exempt — that is the game clock firing, not the student.
-  const tooFast = letter !== null && (Date.now() - (quiz.qShownAt || 0)) < 1500;
   document.querySelectorAll('#qAns .ansbtn').forEach(b => {
     b.disabled = true;
     if (b.dataset.l === letter) b.classList.add(right ? 'correct' : 'wrong');
@@ -1732,7 +1463,6 @@ function answer(letter){
       else if (quiz.streak >= 5) gained += 10;
       else if (quiz.streak >= 3) gained += 5;
     }
-    if (tooFast) gained = 0;   // SCORING HARDENING (d): too-fast answer — correct, but worth no XP
     quiz.correct++;
     quiz.xp += gained;
   } else {
@@ -1773,14 +1503,8 @@ function quitQuiz(){
 
 // Single place where a finished set of answers is written to the student record.
 // Every mode routes through here, so XP, accuracy, topic and subtopic totals stay consistent.
-// SCORING HARDENING (b): clamp here too, not just in finishQuiz. finishQuiz already
-// clamps quiz.xp before calling this (so the clamp below is a no-op for MC/exam/daily/
-// survival/duel), but every concept mode (Matching, Flashcards, Definition Quiz, Chain
-// Builder, Diagram Labelling, Content Mapper) called this directly with an unclamped
-// xp total — the one client-editable number that decides everyone's XP should never
-// skip the cap just because it arrived through a different mode.
 function commitAttempt(attempt, answers, xpGain, bestStreak){
-  me.xp += clampXpGain(attempt, xpGain);
+  me.xp += xpGain;
   me.bestStreak = Math.max(me.bestStreak, bestStreak || 0);
   me.attempts.push(attempt);
   me.lastSeen = me.lastSeen || {};
@@ -1813,12 +1537,6 @@ function commitAttempt(attempt, answers, xpGain, bestStreak){
 }
 
 async function finishQuiz(){
-  // SCORING HARDENING (c): debounce — finishQuiz commits this attempt to the student
-  // record. A double-click on "Next"/"See results" on the last question (or dying
-  // twice in Survival before the screen changes) must not run this twice and double
-  // every XP/badge/total it touches.
-  if (!quiz || quiz.finishing) return;
-  quiz.finishing = true;
   clearInterval(tickHandle);
   const timeSec = Math.round((Date.now() - quiz.t0)/1000);
   const attempt = {
@@ -1845,16 +1563,8 @@ async function finishQuiz(){
     attempt.runLength = quiz.correct;
   }
   if (quiz.mode === 'duel') attempt.duelId = quiz.duelId;
-  if (quiz.mode === 'weakspots') {
-    const ws = me.weakspots || {runs: 0, lastAreas: [], lastDate: null};
-    ws.runs = (ws.runs || 0) + 1;
-    ws.lastAreas = Object.keys(quiz.subs || {});
-    ws.lastDate = Date.now();
-    me.weakspots = ws;
-  }
 
   quiz.xp += quiz.bonus;
-  quiz.xp = clampXpGain(attempt, quiz.xp);   // SCORING HARDENING (b): cap at write time — quiz.xp is editable in devtools right up to this line
   const newBadges = commitAttempt(attempt, quiz.answers, quiz.xp, quiz.bestStreak);
 
   // duels settle against the opponent's stored result
@@ -1898,10 +1608,6 @@ function renderResult(attempt, newBadges, duelInfo){
       ? 'Waiting on ' + oppName + ' to play — you scored ' + attempt.c + '/' + attempt.n + ' in ' + fmtTime(attempt.timeSec)
       : (outcome === 'win' ? '🏆 You beat ' : outcome === 'loss' ? 'Beaten by ' : 'Dead heat with ') + oppName +
         ' — ' + attempt.c + '–' + theirs.c + ' (' + fmtTime(attempt.timeSec) + ' v ' + fmtTime(theirs.timeSec) + ')';
-  } else if (mode === 'weakspots') {
-    $('resEmoji').textContent = pct === 100 ? '🎯🎉' : pct >= 70 ? '🎯💪' : pct >= 40 ? '🎯' : '🌱';
-    $('resScore').textContent = attempt.c + ' / ' + attempt.n;
-    $('resSub').textContent = pct + '% on your weak spots · ' + fmtTime(attempt.timeSec);
   } else {
     $('resEmoji').textContent = pct === 100 ? '🎉🏆🎉' : pct >= 80 ? '🎉' : pct >= 60 ? '💪' : pct >= 40 ? '📚' : '🌱';
     $('resScore').textContent = attempt.c + ' / ' + attempt.n;
@@ -1910,7 +1616,7 @@ function renderResult(attempt, newBadges, duelInfo){
   }
 
   $('resAgainBtn').textContent = 'Play again';
-  $('resAgainBtn').onclick = mode === 'weakspots' ? () => showWeakSetup() : () => showSetup('quiz');
+  $('resAgainBtn').onclick = () => showSetup('quiz');
   $('resXp').textContent = quiz.xp ? '+' + quiz.xp + ' XP earned' + (quiz.bonus ? ' (includes +' + quiz.bonus + ' bonus)' : '') : '';
   $('resBadges').innerHTML = newBadges.map(b =>
     `<div class="newbadge"><span style="font-size:1.6rem">${b.emoji}</span><div style="text-align:left"><b>Badge unlocked: ${b.name}</b><div class="muted">${b.desc}</div></div></div>`).join('');
@@ -1920,37 +1626,6 @@ function renderResult(attempt, newBadges, duelInfo){
     html += `<div class="topicrow"><span class="tl">${topic}</span><div class="tbar"><div style="width:${p}%; background:${TOPIC_COLORS[topic]}"></div></div><span class="muted" style="width:52px; text-align:right">${c}/${tot}</span></div>`;
   }
   $('resTopics').innerHTML = html;
-
-  // Weak Spots: show how the areas this quiz targeted moved, before → after.
-  // "After" is recomputed from studyRows() now that commitAttempt/saveStudent
-  // above have already folded this attempt's answers into me.totals — so this
-  // reads the same live numbers What To Study would show, not a separate calc.
-  if (mode === 'weakspots' && quiz.weakBaseline) {
-    const after = studyRows();
-    const afterByKey = {}; for (const r of after) afterByKey[r.key] = r;
-    const keys = Object.keys(attempt.subs || {}).filter(k => quiz.weakBaseline[k] && afterByKey[k]);
-    if (keys.length) {
-      let cmp = '<h2>Your weak areas — before → after</h2>';
-      for (const k of keys) {
-        const [topic, sub] = k.split('|');
-        const before = quiz.weakBaseline[k], post = afterByKey[k];
-        const beforeTxt = before.n ? Math.round(before.acc * 100) + '%' : 'no data';
-        const afterPct = Math.round(post.acc * 100);
-        const better = !before.n || afterPct >= Math.round(before.acc * 100);
-        cmp += `<div class="topicrow">
-          <span class="tl" style="width:230px"><span style="color:${TOPIC_COLORS[topic]}">●</span> ${esc(sub)}</span>
-          <span class="muted" style="flex:1">${beforeTxt} → <b style="color:${better ? 'var(--good)' : 'var(--bad)'}">${afterPct}%</b></span>
-        </div>`;
-      }
-      $('resWeakCompare').innerHTML = cmp;
-      $('resWeakCompare').style.display = 'block';
-    } else {
-      $('resWeakCompare').style.display = 'none';
-    }
-  } else {
-    $('resWeakCompare').style.display = 'none';
-  }
-
   quiz = null;
   go('result');
 }
@@ -1959,26 +1634,16 @@ function fmtTime(s){ return s >= 60 ? Math.floor(s/60) + 'm ' + (s%60) + 's' : s
 // ================= DAILY CHALLENGE =================
 function dailyQuestions(){ return seededPick(QUESTIONS, 5, 'daily-' + dateKey()); }
 function dailyDone(){ return !!(me.daily && me.daily.date === dateKey()); }
-// SCORING HARDENING (e): true once today's challenge has been started but not finished.
-// Today's five questions are seeded (same for everyone, every attempt), so without this
-// a student could quit mid-challenge, having previewed the questions, and start a fresh
-// — better-prepared — run for the same day. startDaily() sets me.dailyLock the instant
-// play begins and only clears it by actually finishing, so quitting really does forfeit
-// the day as the quit-confirmation dialog already claims.
-function dailyForfeited(){ return !!(me.dailyLock && me.dailyLock === dateKey() && !dailyDone()); }
 
 async function showDaily(){
   go('daily');
   const d = me.daily;
   const done = dailyDone();
-  const forfeited = dailyForfeited();
   const streak = (d && d.date === dateKey()) ? d.streak : (d && d.date === dateKey(Date.now()-86400000)) ? d.streak : 0;
   $('dailyCard').innerHTML = done
     ? `<div class="bigstat">${d.c} / ${d.n}</div>
        <p class="center muted" style="margin-top:6px">Today's challenge is done — ${fmtTime(d.timeSec)} · 🔥 ${d.streak} day streak</p>
        <p class="center muted" style="margin-top:10px">Come back tomorrow for five new questions.</p>`
-    : forfeited
-    ? `<p class="center muted" style="margin-top:6px">You started today's challenge and quit before finishing — it's forfeited until tomorrow. 📆</p>`
     : `<p class="center" style="font-size:1.05rem; margin-bottom:6px">Today's five are ready.</p>
        <p class="center muted">${streak ? '🔥 You\'re on a ' + streak + ' day streak — keep it alive.' : 'Play today to start a streak.'}</p>
        <p class="center muted" style="margin-top:8px; font-size:.82rem">Timed at ${QUIZ_OPTIONS.secondsPerQuestion}s a question. Perfect run: +50 XP bonus.</p>
@@ -1992,20 +1657,14 @@ async function renderDailyBoard(){
   const rows = all.filter(s => s.daily && s.daily.date === today)
     .sort((a,b) => b.daily.c - a.daily.c || a.daily.timeSec - b.daily.timeSec);
   if (!rows.length) { $('dailyBoard').innerHTML = '<p class="muted">Nobody has played today yet — be first on the board.</p>'; return; }
-  $('dailyBoard').innerHTML = '<div class="tablewrap"><table><tr><th>#</th><th>Player</th><th>Class</th><th>Score</th><th>Time</th><th>Streak</th></tr>' +
+  $('dailyBoard').innerHTML = '<table><tr><th>#</th><th>Player</th><th>Class</th><th>Score</th><th>Time</th><th>Streak</th></tr>' +
     rows.map((s,i) => `<tr class="${s.name===me.name?'me':''}"><td class="${i===0?'rank1':i===1?'rank2':i===2?'rank3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
       <td>${esc(s.name)}</td><td class="muted">${esc(classOf(s) || '—')}</td><td><b>${s.daily.c}/${s.daily.n}</b></td>
-      <td>${fmtTime(s.daily.timeSec)}</td><td>🔥 ${s.daily.streak}</td></tr>`).join('') + '</table></div>';
+      <td>${fmtTime(s.daily.timeSec)}</td><td>🔥 ${s.daily.streak}</td></tr>`).join('') + '</table>';
 }
 
 function startDaily(){
   if (dailyDone()) { alert("You've already played today's challenge — come back tomorrow!"); return; }
-  if (dailyForfeited()) { alert("You already started today's challenge and quit — it's forfeited until tomorrow."); return; }
-  // SCORING HARDENING (e): lock today's attempt in the moment it starts (see
-  // dailyForfeited above) — fire-and-forget is fine, this is a best-effort lock,
-  // not the source of truth for the actual result (that's still written by finishQuiz).
-  me.dailyLock = dateKey();
-  Store.saveStudent(me.name, me).catch(()=>{});
   launchQuiz(dailyQuestions(), 'daily', true);
 }
 
@@ -2022,9 +1681,9 @@ async function showSurvival(){
   const rows = all.filter(x => x.survival && x.survival.best > 0)
     .sort((a,b) => b.survival.best - a.survival.best).slice(0,15);
   $('survBoard').innerHTML = rows.length
-    ? '<div class="tablewrap"><table><tr><th>#</th><th>Player</th><th>Class</th><th>Best run</th><th>Runs</th></tr>' +
+    ? '<table><tr><th>#</th><th>Player</th><th>Class</th><th>Best run</th><th>Runs</th></tr>' +
       rows.map((x,i) => `<tr class="${x.name===me.name?'me':''}"><td class="${i===0?'rank1':i===1?'rank2':i===2?'rank3':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
-        <td>${esc(x.name)}</td><td class="muted">${esc(classOf(x) || '—')}</td><td><b>${x.survival.best}</b></td><td>${x.survival.runs}</td></tr>`).join('') + '</table></div>'
+        <td>${esc(x.name)}</td><td class="muted">${esc(classOf(x) || '—')}</td><td><b>${x.survival.best}</b></td><td>${x.survival.runs}</td></tr>`).join('') + '</table>'
     : '<p class="muted">No runs yet — set the mark.</p>';
 }
 function startSurvival(){
@@ -2128,12 +1787,12 @@ function showExam(){
   go('examintro');
   const hist = (me.exams || []).slice().reverse().slice(0,5);
   $('examHistory').innerHTML = hist.length
-    ? '<h2>Your papers</h2><div class="tablewrap"><table><tr><th>When</th><th>Mark</th><th>%</th><th>Band</th><th>Time</th></tr>' +
+    ? '<h2>Your papers</h2><table><tr><th>When</th><th>Mark</th><th>%</th><th>Band</th><th>Time</th></tr>' +
       hist.map(e => {
         const b = bandFromPct(e.pct);
         return `<tr><td class="muted">${new Date(e.d).toLocaleDateString('en-AU',{day:'numeric',month:'short'})}</td>
           <td><b>${e.c}/${e.n}</b></td><td>${e.pct}%</td><td style="color:${b.color}">${b.band}</td><td>${fmtTime(e.timeSec)}</td></tr>`;
-      }).join('') + '</table></div>'
+      }).join('') + '</table>'
     : '<h2>Your papers</h2><p class="muted">No exams sat yet.</p>';
 }
 
@@ -2165,7 +1824,7 @@ function renderExamQ(){
   $('exCounter').textContent = (exam.i+1) + ' / ' + exam.qs.length;
   $('exProgress').style.width = (exam.answers.filter(Boolean).length / exam.qs.length * 100) + '%';
   $('exMeta').textContent = q.year + ' HSC · Question ' + q.n;
-  $('exImg').src = q.img; $('exImg').alt = q.year + ' HSC Question ' + q.n;
+  $('exImg').src = q.img;
   updateExamTimer();
   document.querySelectorAll('#exAns .ansbtn').forEach(b => {
     b.className = 'ansbtn' + (exam.answers[exam.i] === b.dataset.l ? ' sel' : '');
@@ -2187,10 +1846,6 @@ function examNav(step){
 function examGo(i){ if (!exam) return; exam.i = i; renderExamQ(); }
 function pauseExam(){ if (!exam) return; exam.paused = true; $('exPauseVeil').classList.add('on'); }
 function resumeExam(){ if (!exam) return; exam.paused = false; $('exPauseVeil').classList.remove('on'); }
-document.addEventListener('keydown', e => {
-  // a11y: Escape resumes play from the exam pause veil, the one modal-style overlay in the app
-  if (e.key === 'Escape' && $('exPauseVeil').classList.contains('on')) resumeExam();
-});
 function quitExam(){
   if (!confirm('Quit the exam? Nothing will be saved.')) return;
   clearInterval(examTick); exam = null;
@@ -2199,13 +1854,9 @@ function quitExam(){
 }
 
 async function submitExam(auto){
-  // SCORING HARDENING (c): debounce — a double-click on "Submit paper" (or a manual
-  // click racing the auto-submit that fires when the clock hits zero) must not commit
-  // this paper twice and double the XP, badges and exam-history entry it produces.
-  if (!exam || exam.submitting) return;
+  if (!exam) return;
   const blank = exam.answers.filter(a => !a).length;
   if (!auto && blank && !confirm(blank + ' question' + (blank===1?' is':'s are') + ' still blank. Submit anyway?')) return;
-  exam.submitting = true;
   clearInterval(examTick);
   exam.paused = false;
   $('exPauseVeil').classList.remove('on');
@@ -2232,8 +1883,7 @@ async function submitExam(auto){
   const attempt = {d: Date.now(), n: exam.qs.length, c: correct, timeSec,
                    timed: true, mode: 'exam', topics, subs};
   // exam XP: standard per-correct, plus a completion bonus for sitting the full paper
-  // SCORING HARDENING (b): clamp at write time (see maxPlausibleXp in store.js)
-  const xpGain = clampXpGain(attempt, correct * QUIZ_OPTIONS.xpPerCorrect + 40);
+  const xpGain = correct * QUIZ_OPTIONS.xpPerCorrect + 40;
   me.exams = me.exams || [];
   me.exams.push({d: attempt.d, c: correct, n: exam.qs.length, timeSec, pct});
   const newBadges = commitAttempt(attempt, answers, xpGain, 0);
@@ -2304,13 +1954,13 @@ function renderBoard(){
     $('boardTable').innerHTML = `<p class="muted">${boardFilter==='all' ? 'No quizzes played yet — be the first!' : 'Nobody in ' + boardFilter + ' has played yet — be the first!'}</p>`;
     return;
   }
-  let html = '<div class="tablewrap"><table><tr><th>#</th><th>Player</th><th>Class</th><th>Level</th><th>XP</th><th>Accuracy</th><th>Questions</th></tr>';
+  let html = '<table><tr><th>#</th><th>Player</th><th>Class</th><th>Level</th><th>XP</th><th>Accuracy</th><th>Questions</th></tr>';
   list.forEach((s, i) => {
     const acc = s.totals.answered ? Math.round(s.totals.correct/s.totals.answered*100) : 0;
     const rank = i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
     html += `<tr class="${s.name===me.name?'me':''}"><td class="${rank}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td><td>${esc(s.name)}</td><td class="muted">${esc(classOf(s) || '—')}</td><td>${levelFromXp(s.xp)} · ${levelName(levelFromXp(s.xp))}</td><td>${s.xp}</td><td>${acc}%</td><td>${s.totals.answered}</td></tr>`;
   });
-  $('boardTable').innerHTML = html + '</table></div>';
+  $('boardTable').innerHTML = html + '</table>';
 }
 
 function renderClassBattle(allStudents){
@@ -2488,7 +2138,7 @@ function showSAQuestion(){
   $('saProgress').style.width = (sa.i / sa.qs.length * 100) + '%';
   $('saMeta').textContent = q.year + ' HSC · Question ' + q.n + (q.part ? '(' + q.part + ')' : '') + ' · ' + q.topic;
   $('saMarkChip').textContent = q.marks + (q.marks === 1 ? ' mark' : ' marks');
-  $('saImg').src = q.img; $('saImg').alt = q.year + ' HSC Question ' + q.n + (q.part ? '(' + q.part + ')' : '');
+  $('saImg').src = q.img;
   $('saTyped').value = '';
   updateSAWordCount();
   // rough guide: HSC markers expect roughly a paragraph per two marks
@@ -2510,20 +2160,14 @@ function updateSAWordCount(){
   $('saWordCount').textContent = n + (n === 1 ? ' word' : ' words');
 }
 $('saTyped').addEventListener('input', updateSAWordCount);
-$('tsTyped').addEventListener('input', updateTaskSAWordCount);
 
 async function saSubmitTyped(){
-  // SCORING HARDENING (c): re-entrancy lock — a double click/tap on "Hand in" fires
-  // before saShowStep('saStepMarking') has actually repainted, and both invocations
-  // reach the await below, which used to hand the same answer in twice.
-  if (!sa || sa.submitting) return;
   const q = sa.qs[sa.i];
   const typed = $('saTyped').value.trim();
   if (!typed) { alert('Type your answer before handing it in.'); return; }
   if (typed.split(/\s+/).length < 5) {
     if (!confirm('That looks very short for a ' + q.marks + '-mark question. Hand it in anyway?')) return;
   }
-  sa.submitting = true;
   saShowStep('saStepMarking');
   try {
     const resp = await Store.createResponse({
@@ -2547,8 +2191,6 @@ async function saSubmitTyped(){
   } catch(e){
     $('saErrText').textContent = 'Could not reach the server. Check your connection and try again — your answer is still in the box.';
     saShowStep('saStepError');
-  } finally {
-    sa.submitting = false;
   }
 }
 
@@ -2594,442 +2236,6 @@ async function finishSA(){
     `<div class="sarowb"><span class="lbl">${r.label}</span><span><span class="muted">${r.max} marks</span> <span class="awaiting">awaiting marking</span></span></div>`).join('');
   sa = null;
   go('saresult');
-}
-
-// ================= ASSIGNED TASKS =================
-// A "task" (built in the teacher dashboard's Tasks tab) assigns a set of MC
-// and SA question ids to a class and/or named students, with an optional due
-// date. Schema: collection `tasks` (read-only here) and `taskAttempts`
-// (this side owns writes), doc id `${taskId}__${slugify(name)}` — see
-// store.js and quiz-teacher/store.js for the full field list. SA answers for
-// a task travel through the ordinary `responses` pipeline with a `taskId`
-// field added, so marking is entirely unchanged on the teacher side.
-//
-// XP for a task's questions is earned through the exact same scoring code as
-// every other mode — commitAttempt/clampXpGain for MC, SA_SUBMIT_XP for
-// handing in short answers — nothing new is invented here.
-function taskPastDue(t){
-  if (!t || !t.due) return false;
-  const d = new Date(t.due + 'T00:00:00');
-  d.setDate(d.getDate() + 1);   // matches the Firestore rule's taskPastDue(): due date + 1 day
-  return Date.now() > d.getTime();
-}
-
-async function refreshMyTasks(){
-  try {
-    const [allTasks, allAttempts] = await Promise.all([Store.getAllTasks(), Store.getAllTaskAttempts()]);
-    const myCls = classOf(me);
-    const mine = allTasks.filter(t => (t.classes||[]).includes(myCls) || (t.students||[]).includes(me.name));
-    if (!mine.length) { $('myTasksCard').style.display = 'none'; return; }
-    const myResponses = (await Store.getResponsesFor(me.name)).filter(r => r.taskId);
-    mine.sort((a,b) => (a.due || '9999-99-99').localeCompare(b.due || '9999-99-99'));
-    $('myTasksCard').style.display = 'block';
-    $('myTasksList').innerHTML = mine.map(t => taskCardHtmlStudent(t, allAttempts, myResponses)).join('');
-  } catch(e){ /* leave the section as it was rather than break the home screen */ }
-}
-
-function taskStatePillHtml(state){
-  const map = {
-    not_started: ['#2a2f5c', 'var(--ink2)', 'Not started'],
-    in_progress: ['rgba(255,206,84,.16)', 'var(--gold)', 'In progress'],
-    handed_in:   ['rgba(255,206,84,.22)', 'var(--gold)', 'Handed in'],
-    marked:      ['rgba(0,214,143,.16)', 'var(--good)', 'Marked'],
-  };
-  const [bg, fg, label] = map[state] || map.not_started;
-  return `<span class="pill" style="background:${bg}; color:${fg}">${label}</span>`;
-}
-
-// Mirrors the teacher dashboard's taskStudentRow() join exactly (see
-// quiz-teacher/index.html) so the two sides always agree on what "state"
-// means for a given student.
-function taskCardHtmlStudent(t, allAttempts, myResponses){
-  const attempt = allAttempts.find(a => a.taskId === t.id && a.name === me.name);
-  const saResp = myResponses.filter(r => r.taskId === t.id);
-  const saMarked = saResp.filter(r => r.status === 'marked');
-  const saTotal = (t.saIds||[]).length;
-  const mcTotalTask = (t.mcIds||[]).length;
-  let state = attempt ? attempt.state : (saResp.length ? 'handed_in' : 'not_started');
-  if (state === 'handed_in' && (saTotal === 0 || saMarked.length >= saTotal)) state = 'marked';
-  const mcScore = attempt ? (attempt.mcScore||0) : 0;
-  const mcTotal = attempt ? (attempt.mcTotal || mcTotalTask) : mcTotalTask;
-  const saMarkSum = saMarked.reduce((a,r) => a + (r.mark||0), 0);
-  const saMaxSum = saMarked.reduce((a,r) => a + (r.max||0), 0);
-  const denom = (mcTotalTask ? mcTotal : 0) + saMaxSum;
-  const pct = (state === 'marked' && denom) ? Math.round((mcScore + saMarkSum) / denom * 100) : null;
-
-  const overdue = taskPastDue(t) && state !== 'handed_in' && state !== 'marked';
-  const closed = t.status === 'closed';
-  const dueStr = t.due ? new Date(t.due + 'T00:00:00').toLocaleDateString('en-AU', {day:'numeric', month:'short', year:'numeric'}) : null;
-
-  let actionBtn;
-  if (state === 'handed_in' || state === 'marked') {
-    actionBtn = `<button class="btn small primary" onclick="openTaskResults('${t.id}')">View results</button>`;
-  } else if (closed || overdue) {
-    actionBtn = `<button class="btn small" disabled>Closed</button>`;
-  } else {
-    actionBtn = `<button class="btn small primary" onclick="openTask('${t.id}')">${state === 'in_progress' ? 'Resume →' : 'Start →'}</button>`;
-  }
-
-  const scoreLine = (state === 'marked' && pct != null) ? `<b style="color:var(--good)">${pct}%</b>`
-    : (mcTotalTask && attempt) ? `${mcScore}/${mcTotal} MC` + (saTotal ? ' · SA with your teacher' : '') : '';
-
-  return `<div class="taskcard${overdue ? ' overdue' : ''}">
-    <div class="row" style="justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px">
-      <div>
-        <b>${esc(t.title)}</b>${taskStatePillHtml(state)}
-        <div class="muted" style="margin-top:4px; font-size:.85rem">
-          ${t.createdBy ? 'Set by ' + esc(String(t.createdBy).split('@')[0]) + ' · ' : ''}${dueStr
-            ? (overdue ? '<span style="color:var(--bad); font-weight:700">Overdue — was due ' + dueStr + '</span>' : 'Due ' + dueStr)
-            : 'No due date'}${mcTotalTask ? ' · ' + mcTotalTask + ' MC' : ''}${saTotal ? ' · ' + saTotal + ' marks SA' : ''}
-        </div>
-        ${scoreLine ? `<div style="margin-top:6px">${scoreLine}</div>` : ''}
-      </div>
-      <div class="row" style="flex-shrink:0">
-        ${actionBtn}
-        <button class="btn small ghost" title="Print a blank copy of this task" onclick="printTaskStudent('${t.id}')">🖨️</button>
-      </div>
-    </div>
-  </div>`;
-}
-
-// ---- taking a task ----
-async function openTask(taskId){
-  const task = await Store.getTask(taskId);
-  if (!task) { alert('That task could not be found — ask your teacher to check it is still assigned.'); return; }
-  const myCls = classOf(me);
-  const assigned = (task.classes||[]).includes(myCls) || (task.students||[]).includes(me.name);
-  if (!assigned) { alert("You're not assigned to this task."); return; }
-
-  let attempt = await Store.getTaskAttempt(task.id, me.name);
-  if (attempt && attempt.state === 'handed_in') { openTaskResults(task.id); return; }
-
-  if (task.status === 'closed' || taskPastDue(task)) {
-    alert('This task is closed' + (taskPastDue(task) ? " — its due date has passed." : ' by your teacher.') +
-          ' You can no longer start or continue it. Ask your teacher if you think this is a mistake.');
-    return;
-  }
-
-  const answeredMc = new Set(Object.keys((attempt && attempt.mc) || {}));
-  const mcQs = (task.mcIds||[]).map(id => QUESTIONS.find(q => q.id === id)).filter(q => q && !answeredMc.has(q.id));
-  const myResp = await Store.getResponsesFor(me.name);
-  const doneSaIds = new Set(myResp.filter(r => r.taskId === task.id).map(r => r.qid));
-  const saQs = (task.saIds||[]).map(id => SA_QUESTIONS.find(q => q.id === id)).filter(q => q && !doneSaIds.has(q.id));
-
-  if (!attempt) {
-    attempt = {taskId: task.id, name: me.name, startedAt: Date.now(), finishedAt: null, mc: {}, mcScore: 0, mcTotal: 0, state: 'in_progress'};
-    await Store.saveTaskAttempt(task.id, me.name, attempt);
-  }
-
-  taskRun = { task, attempt, mcQs, mcI: 0, mcAnsweredTotal: answeredMc.size, mcGrandTotal: (task.mcIds||[]).length,
-              saQs, saI: 0, saAnsweredBefore: doneSaIds.size, saGrandTotal: (task.saIds||[]).length,
-              sessionAnswers: [], mcT0: Date.now(), saXpSession: 0, saSubmittedSession: 0,
-              saResultsSession: [], newBadges: [], xpEarned: 0 };
-
-  if (!mcQs.length && !saQs.length) { await finishTaskRun(); return; }   // nothing left unanswered for this student
-  if (mcQs.length) { go('taskrun'); showTaskMCQuestion(); }
-  else { go('tasksa'); showTaskSAQuestion(); }
-}
-
-function quitTaskRun(){
-  if (confirm('Quit this task? Anything you have already answered or handed in is saved — you can come back and finish later.')) {
-    taskRun = null; renderHome(); go('home');
-  }
-}
-
-// ---- MC phase ----
-function showTaskMCQuestion(){
-  const q = taskRun.mcQs[taskRun.mcI];
-  $('trCounter').textContent = (taskRun.mcAnsweredTotal + taskRun.mcI + 1) + ' / ' + taskRun.mcGrandTotal;
-  $('trProgress').style.width = ((taskRun.mcAnsweredTotal + taskRun.mcI) / taskRun.mcGrandTotal * 100) + '%';
-  $('trMeta').textContent = q.year + ' HSC · Question ' + q.n;
-  $('trImg').src = q.img; $('trImg').alt = q.year + ' HSC Question ' + q.n;
-  $('trFeedback').style.display = 'none';
-  $('trFeedback').className = 'feedback';
-  document.querySelectorAll('#trAns .ansbtn').forEach(b => { b.disabled = false; b.className = 'ansbtn'; });
-  taskRun.qShownAt = Date.now();   // same anti-scripting guard as the ordinary quiz (see answer())
-  window.scrollTo(0,0);
-}
-
-async function taskAnswerMC(letter){
-  // one grade per question — same debounce as the ordinary quiz's answer()
-  if (!taskRun || $('trFeedback').style.display === 'block') return;
-  const q = taskRun.mcQs[taskRun.mcI];
-  const right = q.ans.includes(letter);
-  const tooFast = (Date.now() - (taskRun.qShownAt || 0)) < 1500;   // correct still counts for the record, just earns no XP
-  document.querySelectorAll('#trAns .ansbtn').forEach(b => {
-    b.disabled = true;
-    if (b.dataset.l === letter) b.classList.add(right ? 'correct' : 'wrong');
-    else if (q.ans.includes(b.dataset.l)) b.classList.add('reveal');
-  });
-
-  taskRun.attempt.mc = taskRun.attempt.mc || {};
-  taskRun.attempt.mc[q.id] = {pick: letter, ok: right};
-  taskRun.attempt.mcScore = Object.values(taskRun.attempt.mc).filter(x => x.ok).length;
-  taskRun.attempt.mcTotal = Object.keys(taskRun.attempt.mc).length;
-  taskRun.attempt.state = 'in_progress';
-  taskRun.sessionAnswers.push({id: q.id, right, counted: right && !tooFast});
-
-  const fb = $('trFeedback');
-  fb.classList.add(right ? 'good' : 'bad');
-  const ansText = q.ans.join(' or ');
-  $('trFbHead').textContent = right ? '✅ Correct!' : '❌ Not quite — the answer is ' + ansText;
-  $('trFbExpl').textContent = q.expl;
-  $('trFbTags').innerHTML = `<span class="tag" style="color:${TOPIC_COLORS[q.topic]}">${q.topic}</span>` +
-    q.subs.map(s => `<span class="tag">${s}</span>`).join('');
-  const isLastMc = taskRun.mcI === taskRun.mcQs.length - 1;
-  $('trNextBtn').textContent = isLastMc ? (taskRun.saQs.length ? 'Continue to short answer →' : 'Finish →') : 'Next →';
-  fb.style.display = 'block';
-  fb.scrollIntoView({behavior:'smooth', block:'nearest'});
-
-  // save progress as we go — merge:true so this can never clobber an earlier question's pick
-  try {
-    await Store.saveTaskAttempt(taskRun.task.id, me.name, {
-      mc: taskRun.attempt.mc, mcScore: taskRun.attempt.mcScore, mcTotal: taskRun.attempt.mcTotal,
-      state: 'in_progress', startedAt: taskRun.attempt.startedAt
-    });
-  } catch(e){ /* best-effort; the final save in finishTaskRun/taskAfterMC still lands the answer */ }
-}
-
-function taskNextMC(){
-  taskRun.mcI++;
-  if (taskRun.mcI >= taskRun.mcQs.length) taskAfterMC();
-  else showTaskMCQuestion();
-}
-
-// Commit this session's MC answers to the student record through the exact
-// same path every other mode uses, so XP/accuracy/topic totals and badges
-// stay consistent with the rest of the game.
-async function taskAfterMC(){
-  if (taskRun.sessionAnswers.length) {
-    const timeSec = Math.round((Date.now() - taskRun.mcT0) / 1000);
-    const correct = taskRun.sessionAnswers.filter(a => a.right).length;
-    const topics = {}, subs = {};
-    for (const a of taskRun.sessionAnswers) {
-      const q = QUESTIONS.find(x => x.id === a.id);
-      if (!q) continue;
-      const tt = topics[q.topic] = topics[q.topic] || [0,0]; tt[1]++; if (a.right) tt[0]++;
-      for (const s of q.subs) { const key = q.topic + '|' + s; const ss = subs[key] = subs[key] || [0,0]; ss[1]++; if (a.right) ss[0]++; }
-    }
-    const attempt = {d: Date.now(), n: taskRun.sessionAnswers.length, c: correct, timeSec, timed: false, mode: 'task', topics, subs};
-    const countedCorrect = taskRun.sessionAnswers.filter(a => a.counted).length;
-    const xpGain = clampXpGain(attempt, countedCorrect * QUIZ_OPTIONS.xpPerCorrect);
-    taskRun.newBadges.push(...commitAttempt(attempt, taskRun.sessionAnswers, xpGain, 0));
-    taskRun.xpEarned += xpGain;
-    await Store.saveStudent(me.name, me);
-  }
-  if (taskRun.saQs.length) { taskRun.saI = 0; go('tasksa'); showTaskSAQuestion(); }
-  else { await finishTaskRun(); }
-}
-
-// ---- SA phase (reuses the ordinary short-answer hand-in pipeline) ----
-function taskShowStep(step){
-  ['tsStepWrite','tsStepMarking','tsStepResult','tsStepError']
-    .forEach(id => $(id).style.display = id === step ? 'block' : 'none');
-}
-function updateTaskSAWordCount(){
-  const t = $('tsTyped').value.trim();
-  const n = t ? t.split(/\s+/).length : 0;
-  $('tsWordCount').textContent = n + (n === 1 ? ' word' : ' words');
-}
-function showTaskSAQuestion(){
-  const q = taskRun.saQs[taskRun.saI];
-  $('tsCounter').textContent = (taskRun.saAnsweredBefore + taskRun.saI + 1) + ' / ' + taskRun.saGrandTotal;
-  $('tsProgress').style.width = ((taskRun.saAnsweredBefore + taskRun.saI) / taskRun.saGrandTotal * 100) + '%';
-  $('tsMeta').textContent = q.year + ' HSC · Question ' + q.n + (q.part ? '(' + q.part + ')' : '') + ' · ' + q.topic;
-  $('tsMarkChip').textContent = q.marks + (q.marks === 1 ? ' mark' : ' marks');
-  $('tsImg').src = q.img; $('tsImg').alt = q.year + ' HSC Question ' + q.n + (q.part ? '(' + q.part + ')' : '');
-  $('tsTyped').value = '';
-  updateTaskSAWordCount();
-  $('tsGuide').textContent = 'guide: about ' + (q.marks * 35) + '–' + (q.marks * 55) + ' words';
-  const topBand = parseCriteria(q.criteria, q.marks).find(r => r.mark != null);
-  $('tsHintVerb').textContent = topBand
-    ? 'To earn full marks (' + topBand.markLabel + '), the guideline expects:\n\n' + topBand.text
-    : 'Answer the verb in the question directly, and use business terminology.';
-  taskShowStep('tsStepWrite');
-  window.scrollTo(0,0);
-}
-async function taskSASubmitTyped(){
-  if (!taskRun || taskRun.saSubmitting) return;
-  const q = taskRun.saQs[taskRun.saI];
-  const typed = $('tsTyped').value.trim();
-  if (!typed) { alert('Type your answer before handing it in.'); return; }
-  if (typed.split(/\s+/).length < 5) {
-    if (!confirm('That looks very short for a ' + q.marks + '-mark question. Hand it in anyway?')) return;
-  }
-  taskRun.saSubmitting = true;
-  taskShowStep('tsStepMarking');
-  try {
-    const resp = await Store.createResponse({
-      student: me.name, cls: classOf(me) || null,
-      qid: q.id, label: q.year + ' Q' + q.n + (q.part ? '(' + q.part + ')' : ''),
-      year: q.year, qn: q.n, part: q.part || null,
-      topic: q.topic, subs: q.subs || [], max: q.marks,
-      typed, submitted: Date.now(), ai: null, taskId: taskRun.task.id
-    });
-    taskRun.saSubmittedSession++;
-    taskRun.saXpSession += SA_SUBMIT_XP;
-    taskRun.saResultsSession.push({id: q.id, label: resp.label, max: q.marks});
-    $('tsFbXp').textContent = '+' + SA_SUBMIT_XP + ' XP for handing in';
-    $('tsFbText').textContent = 'Your teacher will mark this against the official NESA criteria. You\'ll see your mark and feedback here once they have.';
-    let rev = `<details class="rev"><summary>Official NESA marking criteria</summary>${criteriaTableHTML(q.criteria, q.marks)}</details>`;
-    if (q.sample) rev += `<details class="rev"><summary>Sample answer</summary><pre>${esc(q.sample)}</pre></details>`;
-    $('tsFbReveals').innerHTML = rev;
-    $('tsNextBtn').textContent = taskRun.saI === taskRun.saQs.length - 1 ? 'Finish task →' : 'Next →';
-    taskShowStep('tsStepResult');
-  } catch(e){
-    $('tsErrText').textContent = 'Could not reach the server. Check your connection and try again — your answer is still in the box.';
-    taskShowStep('tsStepError');
-  } finally {
-    taskRun.saSubmitting = false;
-  }
-}
-async function taskSANext(){
-  taskRun.saI++;
-  if (taskRun.saI >= taskRun.saQs.length) await finishTaskRun();
-  else showTaskSAQuestion();
-}
-
-// ---- finish ----
-async function finishTaskRun(){
-  if (taskRun.saSubmittedSession) {
-    const mySA = ensureSA(me);
-    mySA.submitted += taskRun.saSubmittedSession;
-    me.xp += taskRun.saXpSession;
-    taskRun.newBadges.push(...evaluateBadges(me, null, QUESTIONS.length));
-    await Store.saveStudent(me.name, me);
-  }
-  const myResp = await Store.getResponsesFor(me.name);
-  const doneSaIds = new Set(myResp.filter(r => r.taskId === taskRun.task.id).map(r => r.qid));
-  const allSaDone = (taskRun.task.saIds||[]).every(id => doneSaIds.has(id));
-  const allMcDone = (taskRun.task.mcIds||[]).every(id => (taskRun.attempt.mc||{})[id]);
-  const patch = {
-    mc: taskRun.attempt.mc || {}, mcScore: taskRun.attempt.mcScore || 0, mcTotal: taskRun.attempt.mcTotal || 0,
-    startedAt: taskRun.attempt.startedAt || Date.now()
-  };
-  const handedIn = allSaDone && allMcDone;
-  if (handedIn) { patch.state = 'handed_in'; patch.finishedAt = Date.now(); }
-  else patch.state = 'in_progress';
-  await Store.saveTaskAttempt(taskRun.task.id, me.name, patch);
-  renderTaskDone(handedIn);
-}
-
-function renderTaskDone(handedIn){
-  const t = taskRun.task;
-  $('tdEmoji').textContent = handedIn ? '✅' : '💾';
-  $('tdTitle').textContent = handedIn ? 'Task handed in!' : 'Progress saved';
-  $('tdScore').textContent = (t.mcIds||[]).length ? (taskRun.attempt.mcScore||0) + ' / ' + (taskRun.attempt.mcTotal||0) + ' multiple choice' : '';
-  const totalXp = (taskRun.xpEarned||0) + (taskRun.saXpSession||0);
-  $('tdXp').textContent = totalXp ? '+' + totalXp + ' XP earned' : '';
-  $('tdBadges').innerHTML = (taskRun.newBadges||[]).map(b =>
-    `<div class="newbadge"><span style="font-size:1.6rem">${b.emoji}</span><div style="text-align:left"><b>Badge unlocked: ${b.name}</b><div class="muted">${b.desc}</div></div></div>`).join('');
-  $('tdSub').textContent = handedIn
-    ? ((t.saIds||[]).length ? 'Your teacher will mark your written answers — check back here or in "My answers" once they have.' : 'Nicely done.')
-    : 'You can come back and finish the rest whenever you like.';
-  taskRun = null;
-  go('taskdone');
-}
-
-// ---- reviewing a task already handed in ----
-async function openTaskResults(taskId){
-  const task = await Store.getTask(taskId);
-  if (!task) { alert('That task could not be found.'); return; }
-  const attempt = await Store.getTaskAttempt(task.id, me.name);
-  const myResp = (await Store.getResponsesFor(me.name)).filter(r => r.taskId === task.id);
-  $('trvTitle').textContent = task.title;
-
-  const mcQs = (task.mcIds||[]).map(id => QUESTIONS.find(q => q.id === id)).filter(Boolean);
-  const mcScore = attempt ? (attempt.mcScore||0) : 0;
-  const mcTotal = attempt ? (attempt.mcTotal || mcQs.length) : mcQs.length;
-  let html = '';
-  if (mcQs.length) html += `<div class="bigstat">${mcScore} / ${mcTotal}</div><p class="center muted" style="margin-bottom:16px">multiple choice</p>`;
-
-  const saQs = (task.saIds||[]).map(id => SA_QUESTIONS.find(q => q.id === id)).filter(Boolean);
-  if (saQs.length) {
-    html += '<h2 style="margin-top:10px">Short answer</h2>';
-    for (const q of saQs) {
-      const r = myResp.find(x => x.qid === q.id);
-      if (!r) {
-        html += `<div class="sarowb"><span class="lbl">${esc(q.year + ' Q' + q.n + (q.part ? '(' + q.part + ')' : ''))}</span><span class="muted">not answered yet</span></div>`;
-        continue;
-      }
-      if (r.status === 'marked') {
-        const p = r.max ? r.mark / r.max : 0;
-        const col = p >= 0.75 ? 'var(--good)' : p >= 0.5 ? 'var(--gold)' : 'var(--bad)';
-        html += `<details class="rev" style="margin-top:8px"><summary>${esc(r.label)} — <b style="color:${col}">${r.mark}/${r.max}</b></summary>
-          ${r.feedback ? `<div style="margin-top:10px"><b>Your teacher's feedback</b><div style="font-size:.93rem; line-height:1.55; margin-top:4px">${esc(r.feedback)}</div></div>` : ''}
-          <div style="margin-top:10px"><b>What you wrote</b><div class="answerbox" style="margin-top:4px">${esc(r.typed)}</div></div>
-        </details>`;
-      } else {
-        html += `<div class="sarowb"><span class="lbl">${esc(r.label)} <span class="muted">· ${r.max} marks</span></span><span class="awaiting">with your teacher</span></div>`;
-      }
-    }
-  }
-  if (!mcQs.length && !saQs.length) html = '<p class="muted">This task has no questions.</p>';
-  $('trvBody').innerHTML = html;
-  go('taskview');
-}
-
-// ---- print (blank paper — same layout the teacher dashboard prints) ----
-function openPrintWindow(title, mcQs, saQs){
-  const w = window.open('', '_blank');
-  if (!w) { alert('Your browser blocked the print window pop-up. Allow pop-ups for this site and try again.'); return; }
-  w.document.write(printPaperHtmlStudent(title, mcQs, saQs));
-  w.document.close();
-}
-function printPaperHtmlStudent(title, mcQs, saQs){
-  let n = 0;
-  const mcBlocks = mcQs.map(q => { n++; return `<div class="qblock">
-      <div class="qnum">Question ${n}</div>
-      <img src="${q.img}" alt="Question ${n}">
-      <div class="bubbles">${['A','B','C','D'].map(l => `<span class="bubble">${l}</span>`).join('')}</div>
-    </div>`; }).join('');
-  const saBlocks = saQs.map(q => { n++; const lines = Math.max(2, q.marks * 2); return `<div class="qblock">
-      <div class="qnum">Question ${n} <span class="marks">(${q.marks} mark${q.marks===1?'':'s'})</span></div>
-      <img src="${q.img}" alt="Question ${n}">
-      <div class="ruled">${Array.from({length: lines}).map(() => '<div class="line"></div>').join('')}</div>
-    </div>`; }).join('');
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(title)}</title>
-<style>
-  @page { size: A4; margin: 18mm 16mm; }
-  *{box-sizing:border-box}
-  body{ font-family:'Segoe UI', system-ui, sans-serif; color:#1c2340; margin:0; padding:24px; }
-  h1{ font-size:1.35rem; margin:0 0 4px }
-  h2{ font-size:1.05rem; margin:22px 0 10px; border-bottom:1px solid #ccc; padding-bottom:4px }
-  .meta{ display:flex; justify-content:space-between; border-bottom:2px solid #1c2340; padding-bottom:10px; margin:10px 0 18px; font-size:.95rem }
-  .qblock{ break-inside: avoid; page-break-inside: avoid; margin-bottom:26px }
-  .qnum{ font-weight:700; margin-bottom:6px }
-  .marks{ font-weight:400; color:#555 }
-  img{ max-width:100%; display:block; margin-bottom:8px }
-  .bubbles{ display:flex; gap:26px; margin-top:6px }
-  .bubble{ display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border:1.5px solid #333; border-radius:50%; font-weight:600 }
-  .ruled .line{ border-bottom:1px solid #999; height:26px }
-  .noprint{ margin-bottom:16px }
-  .noprint button{ font-size:.95rem; padding:8px 16px; border-radius:8px; border:1px solid #ccc; background:#f4f5fb; cursor:pointer }
-  @media print { .noprint{ display:none } }
-</style></head>
-<body>
-  <div class="noprint"><button onclick="window.print()">🖨️ Print</button></div>
-  <h1>${esc(title)}</h1>
-  <div class="meta"><span>Name: ____________________________</span><span>Date: ____________</span></div>
-  ${mcQs.length ? '<h2>Section I — Multiple choice</h2>' + mcBlocks : ''}
-  ${saQs.length ? '<h2>Section II — Short answer</h2>' + saBlocks : ''}
-</body></html>`;
-}
-async function printTaskStudent(taskId){
-  const t = await Store.getTask(taskId);
-  if (!t) { alert('That task could not be found.'); return; }
-  const mcQs = (t.mcIds||[]).map(id => QUESTIONS.find(q => q.id === id)).filter(Boolean);
-  const saQs = (t.saIds||[]).map(id => SA_QUESTIONS.find(q => q.id === id)).filter(Boolean);
-  openPrintWindow(t.title, mcQs, saQs);
-}
-// Prints exactly the pool the Multiple Choice setup screen's filters would serve,
-// capped at whatever question count is currently selected — never the answers.
-function printSetupPaper(){
-  const pool = filteredPool();
-  if (!pool.length) { alert('No questions match those filters — widen them a little.'); return; }
-  const n = Math.min(sel.n, pool.length);
-  const qs = pool.slice().sort(() => Math.random() - .5).slice(0, n);
-  openPrintWindow('Multiple Choice Quiz — ' + n + ' questions', qs, []);
 }
 
 // ---------- my short answers ----------
@@ -3101,14 +2307,13 @@ function startPeer(){
 }
 
 function showPeerItem(){
-  peer.submitting = false;
   const r = peer.items[peer.i];
   const q = SA_QUESTIONS.find(x => x.id === r.qid);
   $('peerCounter').textContent = (peer.i+1) + ' / ' + peer.items.length;
   $('peerProgress').style.width = (peer.i / peer.items.length * 100) + '%';
   $('peerMeta').textContent = r.label + ' · ' + r.topic;
   $('peerMarkChip').textContent = r.max + (r.max === 1 ? ' mark' : ' marks');
-  $('peerImg').src = q ? q.img : ''; $('peerImg').alt = r.label ? 'HSC ' + r.label : 'HSC short-answer question';
+  $('peerImg').src = q ? q.img : '';
   $('peerAnswer').textContent = r.typed;
   $('peerCriteria').innerHTML = q ? criteriaTableHTML(q.criteria, r.max) : '<p class="muted">Criteria unavailable.</p>';
   $('peerSample').textContent = q && q.sample ? q.sample : 'No sample answer available for this question.';
@@ -3122,11 +2327,6 @@ function showPeerItem(){
 }
 
 async function peerSubmit(mark){
-  // SCORING HARDENING (c): re-entrancy lock — double-tapping a mark button before
-  // the mark buttons are hidden (they only hide after the await below) used to
-  // record the mark twice and add its XP to peer.xp twice.
-  if (!peer || peer.submitting) return;
-  peer.submitting = true;
   const r = peer.items[peer.i];
   const teacher = r.mark;
   const diff = Math.abs(mark - teacher);
@@ -3397,9 +2597,6 @@ function roundComplete(){
 }
 function revealRound(){
   clearInterval(mTick);
-  // roundComplete() reaches here via a 450ms setTimeout; if the student hits Quit
-  // during that window, mt is already null by the time this fires.
-  if (!mt) return;
   document.querySelectorAll('#matchTerms .mcard, #matchDefs .mcard').forEach(el => {
     el.classList.add('done'); el.onclick = null;
   });
@@ -3420,7 +2617,6 @@ async function finishMatching(){
   };
   if (mt.total && mt.correct === mt.total) mt.bonus = 25; else mt.bonus = 0;
   mt.xp += mt.bonus;
-  mt.xp = clampXpGain(attempt, mt.xp);   // SCORING HARDENING (b): clamp at write time, same as finishQuiz
   // answers array is empty on purpose: My Mistakes is a bank of past HSC
   // questions, and glossary ids must never leak into me.wrong / me.seen.
   // bestStreak is passed as 0 as well — the streak badges are meant to reward
@@ -3466,11 +2662,6 @@ async function finishConceptMode(o){
     d: Date.now(), n: o.n, c: o.c, timeSec: o.timeSec, timed: !!o.timed,
     mode: o.mode, topics: o.topics, subs: o.subs
   };
-  // SCORING HARDENING (b): clamp at write time, same as finishQuiz — this is the
-  // single place all six concept modes (Matching excluded, it clamps itself above;
-  // Flashcards, Definition Quiz, Chain Builder, Diagram Labelling, Content Mapper)
-  // funnel their XP through, so one clamp here covers all of them.
-  o.xp = clampXpGain(attempt, o.xp);
   // lifetime per-mode counts drive the cumulative badges (Card Shark, Chain Reaction)
   me.conceptTotals = me.conceptTotals || {};
   me.conceptTotals[o.mode] = (me.conceptTotals[o.mode] || 0) + (o.mode === 'chains' ? o.c : o.n);
@@ -3706,7 +2897,6 @@ function showDefQuestion(){
   if (dq.i >= dq.qs.length) { finishDefQuiz(); return; }
   const q = dq.qs[dq.i];
   dq.answered = false;
-  dq.qShownAt = Date.now();   // SCORING HARDENING (d): same convention as the MC quiz
   $('defCount').textContent = 'Q' + (dq.i+1) + ' / ' + dq.qs.length;
   $('defProg').style.width = (dq.i / dq.qs.length * 100) + '%';
   $('defStreak').textContent = dq.streak >= 3 ? '🔥 ' + dq.streak : '';
@@ -3728,13 +2918,9 @@ function answerDef(i){
   });
   trackTerm(q.term.id, right);
   tallyInto(dq.topics, dq.subs, q.term.topic, q.term.sub, right);
-  // SCORING HARDENING (d): same 1.5s minimum-time rule as the MC quiz — an answer
-  // landing this fast is too quick to have been read, so it counts for accuracy but
-  // earns no XP.
-  const tooFast = (Date.now() - (dq.qShownAt || 0)) < 1500;
   if (right) {
     dq.correct++; dq.streak++; dq.bestStreak = Math.max(dq.bestStreak, dq.streak);
-    if (!tooFast) dq.xp += (typeof QUIZ_OPTIONS !== 'undefined' && QUIZ_OPTIONS.xpPerMatch != null ? QUIZ_OPTIONS.xpPerMatch : 5);
+    dq.xp += (typeof QUIZ_OPTIONS !== 'undefined' && QUIZ_OPTIONS.xpPerMatch != null ? QUIZ_OPTIONS.xpPerMatch : 5);
   } else dq.streak = 0;
   dq.results.push({id: q.term.id, term: q.term.term, right});
   const fb = $('defFb');
@@ -3925,7 +3111,6 @@ function showMapQuestion(){
   const q = mp.qs[mp.i];
   mp.answered = false;
   mp.pick = {topic:null, sub:null};
-  mp.qShownAt = Date.now();   // SCORING HARDENING (d): same convention as the MC quiz
   $('mapCount').textContent = 'Q' + (mp.i+1) + ' / ' + mp.qs.length;
   $('mapProg').style.width = (mp.i / mp.qs.length * 100) + '%';
   $('mapStreak').textContent = mp.streak >= 3 ? '🔥 ' + mp.streak : '';
@@ -3934,7 +3119,7 @@ function showMapQuestion(){
     `<span class="chip">Q${q.n}${q.part ? '(' + esc(q.part) + ')' : ''}</span>` +
     (q.kind === 'sa' ? `<span class="markchip">${q.marks} mark${q.marks === 1 ? '' : 's'}</span>`
                      : `<span class="chip">Multiple choice</span>`);
-  $('mapImg').src = q.img; $('mapImg').alt = q.year + ' HSC Question ' + q.n + (q.part ? '(' + q.part + ')' : '');
+  $('mapImg').src = q.img;
   // topic list is always all four — a topic filter narrows the questions, not the options
   $('mapTopic').innerHTML = '<option value="">Choose a topic…</option>' +
     Object.keys(SYLLABUS).map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
@@ -3991,15 +3176,10 @@ function mapSubmit(){
   renderMapTrail(right);
 
   tallyInto(mp.topics, mp.subs, q.topic, q.subs[0], right);
-  // SCORING HARDENING (d): same 1.5s minimum-time rule as the MC quiz — a real HSC
-  // question (with its source image) can't have been read that fast.
-  const tooFast = (Date.now() - (mp.qShownAt || 0)) < 1500;
   if (right) {
     mp.correct++; mp.streak++; mp.bestStreak = Math.max(mp.bestStreak, mp.streak);
-    if (!tooFast) {
-      mp.xp += 10;
-      if (mp.streak >= 10) mp.xp += 15; else if (mp.streak >= 5) mp.xp += 10; else if (mp.streak >= 3) mp.xp += 5;
-    }
+    mp.xp += 10;
+    if (mp.streak >= 10) mp.xp += 15; else if (mp.streak >= 5) mp.xp += 10; else if (mp.streak >= 3) mp.xp += 5;
   } else mp.streak = 0;
   mp.results.push({id: q.id, kind: q.kind, right, picked: mp.pick.topic + ' › ' + mp.pick.sub,
                    answer: q.topic + ' › ' + q.subs.join(' / ')});

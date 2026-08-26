@@ -353,10 +353,13 @@ async function sylFinish(){
     p[1]++; if (l.right) p[0]++; p[2] = Date.now();
   }
 
-  me.xp += syl.xp;
-  me.bestStreak = Math.max(me.bestStreak, syl.bestStreak);
   const attempt = { d: Date.now(), n, c, timeSec, timed: false,
                     mode: 'syllabus', game: syl.game, topics: {}, subs: {} };
+  // SCORING HARDENING (b): clamp at write time, same as index.html's finishQuiz —
+  // syl.xp is plain client state (streak bonuses included) right up until this line.
+  syl.xp = clampXpGain(attempt, syl.xp);
+  me.xp += syl.xp;
+  me.bestStreak = Math.max(me.bestStreak, syl.bestStreak);
   me.attempts.push(attempt);
   const newBadges = evaluateBadges(me, attempt, QUESTIONS.length);
   await Store.saveStudent(me.name, me);

@@ -1,0 +1,147 @@
+// ===========================================================================
+// Firestore security rules — HSC Business Studies Quiz Arena
+//
+// Paste this into: Firebase Console -> Build -> Firestore Database -> Rules,
+// then press Publish. It replaces the "allow read, write: if true" rules the
+// project started with.
+//
+// ---------------------------------------------------------------------------
+// READ THIS FIRST — what changed and why.
+//
+// Google sign-in did not work reliably on school-managed devices, so both
+// sites went back to the pre-SSO design: the teacher dashboard is gated by a
+// single shared password (TEACHER_PASSWORD in quiz-teacher/config.js) checked
+// in the browser, and students sign in with a name + PIN stored in their own
+// Firestore document. Neither of those produces a `request.auth` identity —
+// there is no signed-in account for these rules to inspect at all.
+//
+// That means the checks in the previous version of this file (schoolAccount,
+// isTeacher, ownsName — all of which read request.auth.token) cannot be
+// written any more. There is no way for a security rule to tell "the teacher
+// typed the dashboard password" or "this is really Jane's PIN session" apart
+// from "anyone who has this project's config.js". Practically:
+//
+//   ANYONE WHO HAS THE FIREBASE CONFIG IN config.js (visible to anyone who
+//   views source on either site) CAN READ AND WRITE ANY DOCUMENT THAT THESE
+//   RULES LEAVE OPEN, WITHIN THE SHAPE LIMITS BELOW. There is no identity
+//   check protecting a student's PIN or a teacher's password from someone who
+//   reads the JS and calls Firestore directly.
+//
+// This configuration trusts the app, not the caller. Everything below that
+// CAN be enforced without an identity — a write can't quietly hand itself a
+// huge XP jump, can't rename someone else's record, a submitted short answer
+// has to start unmarked, a task attempt has to point at a real task — still
+// is enforced, because those are checks about the SHAPE of the data, not
+// about who is sending it. If a real security boundary matters again, Google
+// SSO (or any auth provider with a request.auth identity) remains the
+// stronger option — see GOOGLE-SSO-SETUP.md, and the pre-revert version of
+// this file in quiz-teacher/store.js.bak / index.html.bak for the SSO-era
+// rule patterns (schoolAccount / isTeacher / ownsName) if it's ever revisited.
+// ---------------------------------------------------------------------------
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // The class list, class assignments, announcements, and anything else
+    // under meta/*. No identity to gate this on any more — the dashboard
+    // (behind its own password screen) writes the roster and announcements
+    // directly, and every student needs to read it to work out who they are.
+    match /meta/{doc} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // One document per student, holding PIN, XP, badges, attempts and totals.
+    //
+    // Shape limits that hold regardless of who is writing:
+    //  - `name` cannot change once a record exists (no relabelling someone
+    //    else's doc into your own).
+    //  - `xp` cannot jump by more than 1000 in a single update, or start
+    //    above 1000 on create — comfortably above the biggest single
+    //    quiz/exam a real session awards, well below what a bogus one-shot
+    //    value like 999999999 would need. (The dashboard's own "Adjust XP"
+    //    tool writes an exact value in one call, so keep this generous
+    //    enough for a teacher correcting a mistake — 1000 covers that.)
+    match /students/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.get('xp', 0) <= 1000;
+      allow update: if request.resource.data.name == resource.data.name
+                    && request.resource.data.get('xp', 0) <= resource.data.get('xp', 0) + 1000;
+      allow delete: if true;
+    }
+
+    // Handed-in short answers.
+    //  - A create must start unmarked: status 'pending', mark null. Only a
+    //    later update can set a real mark — this stops a write from
+    //    self-approving a mark the moment it's submitted.
+    //  - Updates are open (marking, re-marking, and peer marks all go through
+    //    here) — there is no identity left to tell a teacher's mark from a
+    //    peer mark from the student's own record, so this is trust-the-app,
+    //    same as everything else in this file.
+    match /responses/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.status == 'pending'
+                    && request.resource.data.mark == null;
+      allow update: if true;
+      allow delete: if true;
+    }
+
+    // Tasks (the "Tasks" tab / test-builder). A task assigns a set of MC and
+    // SA question ids to one or more classes and/or named students.
+    match /tasks/{taskId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // True once a task's due date (a "YYYY-MM-DD" string, or null for no due
+    // date) has fully passed. int() and timestamp.date() let a "YYYY-MM-DD"
+    // string be turned into a real timestamp inside a rule.
+    function taskPastDue(task) {
+      return task.due != null
+          && request.time > timestamp.date(int(task.due.split('-')[0]), int(task.due.split('-')[1]), int(task.due.split('-')[2])) + duration.value(1, 'd');
+    }
+
+    // One doc per (task, student), id `${taskId}__${slugify(name)}` (see
+    // store.js slugify/getTaskAttempt), tracking a student's MC progress on a
+    // task. SA answers for a task travel through the `responses` collection
+    // above (each carries a matching `taskId` field) and are governed by the
+    // `responses` rules, not these.
+    //
+    // Shape limits that hold regardless of who is writing: `name` cannot
+    // change once the doc exists; the write's `taskId` must match the id's
+    // own prefix and point at a task that actually exists; `mcTotal` cannot
+    // exceed that task's real MC question count (so a client can't inflate
+    // its own denominator); the write must land before the task is closed or
+    // past its due date; and `state` may only be "in_progress" or
+    // "handed_in" — "marked" is derived for display by the dashboard (joining
+    // against `responses`) and is never something a write here may claim.
+    match /taskAttempts/{attemptId} {
+      allow read: if true;
+      allow delete: if true;
+      allow create, update: if (resource == null || resource.data.name == request.resource.data.name)
+            && request.resource.data.taskId == attemptId.split('__')[0]
+            && exists(/databases/$(database)/documents/tasks/$(request.resource.data.taskId))
+            && get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data.status != 'closed'
+            && !taskPastDue(get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data)
+            && request.resource.data.get('mcTotal', 0) <= get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data.mcIds.size()
+            && request.resource.data.get('state', 'in_progress') in ['in_progress', 'handed_in'];
+    }
+
+    // Duels. The challenge itself (from/to/qids) is fixed at creation — a
+    // later update may only ever add to the `res` map. This is a shape check
+    // that holds with no identity behind it: nobody's write, however it got
+    // here, can rewrite who the duel was between after the fact.
+    match /duels/{id} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['res']);
+      allow delete: if true;
+    }
+
+    // Anything not named above is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

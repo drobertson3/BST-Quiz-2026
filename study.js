@@ -146,6 +146,10 @@ function showStudy(){
   const dgLeft = DIAGRAMS.filter(d => !(me.diagrams || {})[d.id]).length;
   if (dgLeft) quick.push(studyQuick('📐', dgLeft + ' diagram' + (dgLeft === 1 ? '' : 's') + ' never attempted',
     'Quick marks if they come up', 'Label them', 'showDiagramPick()'));
+  if (me.weakspots && me.weakspots.runs)
+    quick.push(studyQuick('🎯', me.weakspots.runs + ' Weak Spots quiz' + (me.weakspots.runs === 1 ? '' : 'zes') + ' run',
+      'Last one ' + studyAgo(me.weakspots.lastDate ? (Date.now() - me.weakspots.lastDate) / 86400000 : null),
+      'Run another', 'showWeakSetup()'));
   $('studyQuick').innerHTML = quick.length
     ? '<h2>Quick wins</h2>' + quick.join('')
     : '<h2>Quick wins</h2><p class="muted">Nothing outstanding — mistakes cleared, terms holding up, diagrams attempted. 🎯</p>';
@@ -258,4 +262,118 @@ function studyHomeLine(){
     const top = rows[0];
     return (top.n ? '⚠️ ' : '🕳️ ') + top.sub + ' (' + top.topic + ')';
   } catch(e){ return 'Find out where to spend your time'; }
+}
+
+// ====================================================================
+// WEAK SPOTS — a quiz mode built on top of the same per-area rows above.
+// What To Study tells a student where they're weak; Weak Spots is the
+// "just build me a quiz out of that" button. It deliberately targets
+// AREAS (including ones never seen), not the exact questions sitting in
+// My Mistakes — that overlap would make the two modes redundant.
+//
+// Nothing here touches the DOM or the student record; index.html reads
+// these functions to render the setup/result screens and to build the
+// question pool, so the weighting logic exists in exactly one place and
+// is trivial to exercise from plain Node (see the test harness in the
+// delivery report).
+// ====================================================================
+const WEAK_MID_SHARE   = 0.20;  // fraction of the quiz drawn from solid areas so it doesn't feel punishing
+const WEAK_WRONG_BOOST = 12;    // small nudge for a question that's an exact, current My Mistakes entry
+const WEAK_MIN_WEIGHT  = 1;     // no candidate should ever hit zero probability
+
+// True once every area has zero evidence — a genuinely fresh account, where
+// ranking "weakest" areas would just be ranking noise.
+function weakSpotFreshAccount(rows){
+  return rows.every(r => r.n === 0);
+}
+// True while too few areas have crossed studyRows' own evidence bar to trust
+// the ranking — most of what looks "weak" is really just "untested".
+function weakSpotThinHistory(rows){
+  return rows.filter(r => r.n >= STUDY_MIN_EVIDENCE).length < 3;
+}
+
+// The 3–5 areas the setup screen shows as "where this quiz is aimed". Prefers
+// focus/watch areas; if a student is somehow solid everywhere, falls back to
+// the weakest of the solid areas rather than showing nothing.
+function weakSpotAreas(rows, count){
+  count = count || 5;
+  const notSolid = rows.filter(r => r.band !== 'solid');
+  return (notSolid.length ? notSolid : rows).slice(0, count);
+}
+
+// Weight one MC question by how weak its syllabus areas are (studyRows' own
+// score — low accuracy and never-seen areas already score high there), plus a
+// small boost if this exact question is currently sitting in My Mistakes.
+function weakSpotQuestionWeight(q, rowsByKey, wrongSet){
+  const keys = (q.subs || []).map(s => q.topic + '|' + s);
+  const scores = keys.map(k => (rowsByKey[k] ? rowsByKey[k].score : 40));
+  const areaScore = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 40;
+  const boost = (wrongSet && wrongSet.has(q.id)) ? WEAK_WRONG_BOOST : 0;
+  return Math.max(WEAK_MIN_WEIGHT, areaScore + boost);
+}
+
+// Efraimidis-Spirakis weighted sampling without replacement: give every
+// candidate a key of random()^(1/weight) and take the top n by key — a single
+// sort that samples proportional to weight, no repeated-draw loop needed.
+function weightedSampleNoReplace(items, weightFn, n){
+  const keyed = items.map(it => ({it, key: Math.pow(Math.random(), 1 / Math.max(1e-6, weightFn(it)))}));
+  keyed.sort((a, b) => b.key - a.key);
+  return keyed.slice(0, Math.max(0, Math.min(n, keyed.length))).map(x => x.it);
+}
+
+// Fresh-account fallback: an even spread across every syllabus area that has
+// questions at all, round-robin, rather than a plain uniform sample over
+// questions (which would quietly over-represent areas with a bigger bank).
+function weakSpotEvenSample(questions, rows, n){
+  const byArea = {};
+  for (const r of rows) byArea[r.key] = [];
+  for (const q of questions)
+    for (const s of (q.subs || [])) { const k = q.topic + '|' + s; if (byArea[k]) byArea[k].push(q); }
+  const areas = Object.keys(byArea).filter(k => byArea[k].length);
+  for (const k of areas) byArea[k].sort(() => Math.random() - .5);
+  const picked = [], pickedIds = new Set();
+  let idx = 0, spins = 0;
+  while (picked.length < n && areas.some(k => byArea[k].length) && spins < areas.length * questions.length + 10) {
+    spins++;
+    const k = areas[idx % areas.length]; idx++;
+    while (byArea[k].length) {
+      const q = byArea[k].shift();
+      if (!pickedIds.has(q.id)) { picked.push(q); pickedIds.add(q.id); break; }
+    }
+  }
+  return picked;
+}
+
+// Build the Weak Spots quiz pool: weighted toward weak areas (including areas
+// never seen), with ~20% mixed in from solid areas, sampled without repeats.
+// `wrong` is me.wrong — the current My Mistakes id list.
+function weakSpotPool(questions, rows, n, wrong){
+  if (weakSpotFreshAccount(rows)) return weakSpotEvenSample(questions, rows, n);
+
+  const rowsByKey = {};
+  for (const r of rows) rowsByKey[r.key] = r;
+  const wrongSet = new Set(wrong || []);
+  const weightOf = q => weakSpotQuestionWeight(q, rowsByKey, wrongSet);
+
+  const midKeys = new Set(rows.filter(r => r.band === 'solid').map(r => r.key));
+  const isMid = q => (q.subs || []).some(s => midKeys.has(q.topic + '|' + s));
+
+  const midShare = Math.round(n * WEAK_MID_SHARE);
+  const midPool = questions.filter(isMid);
+  const midPicks = midPool.length ? weightedSampleNoReplace(midPool, weightOf, midShare) : [];
+  const pickedIds = new Set(midPicks.map(q => q.id));
+
+  const restPool = questions.filter(q => !pickedIds.has(q.id));
+  const weakPicks = weightedSampleNoReplace(restPool, weightOf, n - midPicks.length);
+
+  const all = [...midPicks, ...weakPicks];
+  // backfill if a narrow filter or small bank left either pool short
+  if (all.length < n) {
+    const have = new Set(all.map(q => q.id));
+    for (const q of questions) {
+      if (all.length >= n) break;
+      if (!have.has(q.id)) { all.push(q); have.add(q.id); }
+    }
+  }
+  return all;
 }
