@@ -7,7 +7,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{
   --bg:#0f1226; --bg2:#181c3a; --card:#1e2347; --card2:#262c58;
@@ -1812,6 +1812,21 @@ function commitAttempt(attempt, answers, xpGain, bestStreak){
   return evaluateBadges(me, attempt, QUESTIONS.length);
 }
 
+// Wraps the (very common) "await Store.saveStudent(me.name, me)" so a rejected
+// write (e.g. a security-rules denial or dropped connection) can't strand the
+// student on a stuck/blank screen — callers check the return value and bail
+// out of whatever screen transition they were about to make.
+async function saveMe(){
+  try {
+    await Store.saveStudent(me.name, me);
+    return true;
+  } catch(e){
+    console.error('saveStudent failed', e);
+    alert('Your progress could not be saved. Check your connection and try again.');
+    return false;
+  }
+}
+
 async function finishQuiz(){
   // SCORING HARDENING (c): debounce — finishQuiz commits this attempt to the student
   // record. A double-click on "Next"/"See results" on the last question (or dying
@@ -1873,7 +1888,7 @@ async function finishQuiz(){
     }
   }
 
-  await Store.saveStudent(me.name, me);
+  if (!(await saveMe())) { quiz.finishing = false; return; }
   renderResult(attempt, newBadges, duelInfo);
 }
 function renderResult(attempt, newBadges, duelInfo){
@@ -2054,7 +2069,7 @@ async function settleDuels(duels){
   }
   if (changed) {
     evaluateBadges(me, null, QUESTIONS.length);
-    await Store.saveStudent(me.name, me);
+    await saveMe();
   }
   return changed;
 }
@@ -2237,7 +2252,7 @@ async function submitExam(auto){
   me.exams = me.exams || [];
   me.exams.push({d: attempt.d, c: correct, n: exam.qs.length, timeSec, pct});
   const newBadges = commitAttempt(attempt, answers, xpGain, 0);
-  await Store.saveStudent(me.name, me);
+  await saveMe();
   renderExamResult(attempt, pct, xpGain, newBadges, review, auto);
   exam = null;
 }
@@ -2566,7 +2581,7 @@ async function commitSASession(){
   mySA.submitted += sa.submitted;
   me.xp += sa.xp;
   const badges = evaluateBadges(me, null, QUESTIONS.length);
-  await Store.saveStudent(me.name, me);
+  await saveMe();
   return badges;
 }
 async function quitSA(){
@@ -2610,8 +2625,8 @@ async function finishSA(){
 // handing in short answers — nothing new is invented here.
 function taskPastDue(t){
   if (!t || !t.due) return false;
-  const d = new Date(t.due + 'T00:00:00');
-  d.setDate(d.getDate() + 1);   // matches the Firestore rule's taskPastDue(): due date + 1 day
+  const d = new Date(t.due + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + 1);   // matches the Firestore rule's taskPastDue(): UTC due date + 1 day
   return Date.now() > d.getTime();
 }
 
@@ -2659,7 +2674,7 @@ function taskCardHtmlStudent(t, allAttempts, myResponses){
 
   const overdue = taskPastDue(t) && state !== 'handed_in' && state !== 'marked';
   const closed = t.status === 'closed';
-  const dueStr = t.due ? new Date(t.due + 'T00:00:00').toLocaleDateString('en-AU', {day:'numeric', month:'short', year:'numeric'}) : null;
+  const dueStr = t.due ? new Date(t.due + 'T00:00:00Z').toLocaleDateString('en-AU', {day:'numeric', month:'short', year:'numeric'}) : null;
 
   let actionBtn;
   if (state === 'handed_in' || state === 'marked') {
@@ -2815,7 +2830,7 @@ async function taskAfterMC(){
     const xpGain = clampXpGain(attempt, countedCorrect * QUIZ_OPTIONS.xpPerCorrect);
     taskRun.newBadges.push(...commitAttempt(attempt, taskRun.sessionAnswers, xpGain, 0));
     taskRun.xpEarned += xpGain;
-    await Store.saveStudent(me.name, me);
+    await saveMe();
   }
   if (taskRun.saQs.length) { taskRun.saI = 0; go('tasksa'); showTaskSAQuestion(); }
   else { await finishTaskRun(); }
@@ -2896,7 +2911,7 @@ async function finishTaskRun(){
     mySA.submitted += taskRun.saSubmittedSession;
     me.xp += taskRun.saXpSession;
     taskRun.newBadges.push(...evaluateBadges(me, null, QUESTIONS.length));
-    await Store.saveStudent(me.name, me);
+    await saveMe();
   }
   const myResp = await Store.getResponsesFor(me.name);
   const doneSaIds = new Set(myResp.filter(r => r.taskId === taskRun.task.id).map(r => r.qid));
@@ -3181,7 +3196,7 @@ async function finishPeer(){
                     mode: 'peermark', marked: n, exact: peer.exact, xpEarned: peer.xp,
                     topics: {}, subs: {}});
   const newBadges = evaluateBadges(me, null, QUESTIONS.length);
-  await Store.saveStudent(me.name, me);
+  await saveMe();
 
   const avg = n ? (peer.totalDiff / n).toFixed(1) : '0';
   $('peerResEmoji').textContent = peer.exact === n ? '🎯🏆' : peer.exact ? '⚖️👏' : '⚖️';
@@ -3426,7 +3441,7 @@ async function finishMatching(){
   // bestStreak is passed as 0 as well — the streak badges are meant to reward
   // consecutive exam questions, and matching pairs are a much easier win.
   const newBadges = commitAttempt(attempt, [], mt.xp, 0);
-  await Store.saveStudent(me.name, me);
+  await saveMe();
 
   const missed = mt.results.filter(r => !r.firstTry);
   const pct = attempt.n ? Math.round(attempt.c / attempt.n * 100) : 0;
@@ -3475,7 +3490,7 @@ async function finishConceptMode(o){
   me.conceptTotals = me.conceptTotals || {};
   me.conceptTotals[o.mode] = (me.conceptTotals[o.mode] || 0) + (o.mode === 'chains' ? o.c : o.n);
   const newBadges = commitAttempt(attempt, [], o.xp, 0);
-  await Store.saveStudent(me.name, me);
+  await saveMe();
   const pct = attempt.n ? Math.round(attempt.c / attempt.n * 100) : 0;
   $('resEmoji').textContent = o.emoji(pct);
   $('resScore').textContent = o.scoreText || (attempt.c + ' / ' + attempt.n);

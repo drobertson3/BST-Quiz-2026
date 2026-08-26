@@ -422,12 +422,15 @@ const Store = (() => {
 
   // ---- announcements (teacher dashboard writes; students read) ----
   // meta/announcements = {items: [{id, text, created (ISO string), expires ("YYYY-MM-DD"|null)}]}
+  // localStorage fallback key: hscq_announcements, holding the same `items` array
+  // directly (tolerates the old {items: []} shape for data written before this fix).
   async function getAnnouncements(){
     if (cloud) {
       const doc = await db.collection('meta').doc('announcements').get();
       return doc.exists ? (doc.data().items || []) : [];
     }
-    return (lsGet('hscq_announcements', {items: []}).items) || [];
+    const raw = lsGet('hscq_announcements', []);
+    return Array.isArray(raw) ? raw : (raw.items || []);
   }
 
   return { init, isCloud: () => cloud, getRoster, saveRoster, removeFromRoster, getRemoved,
@@ -628,7 +631,7 @@ function applyTeacherMark(student, resp, mark, totalQuestions){
   const xpDelta = isRemark ? saXpFor(mark, max) - saXpFor(had, max) : saXpFor(mark, max);
 
   const sa = ensureSA(student);
-  student.xp += xpDelta;
+  student.xp = Math.max(0, student.xp + xpDelta);
   sa.marks += delta;
   if (!isRemark) {
     sa.count++;
