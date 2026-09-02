@@ -57,17 +57,24 @@ service cloud.firestore {
     // Shape limits that hold regardless of who is writing:
     //  - `name` cannot change once a record exists (no relabelling someone
     //    else's doc into your own).
-    //  - `xp` cannot jump by more than 1000 in a single update, or start
-    //    above 1000 on create — comfortably above the biggest single
-    //    quiz/exam a real session awards, well below what a bogus one-shot
-    //    value like 999999999 would need. (The dashboard's own "Adjust XP"
-    //    tool writes an exact value in one call, so keep this generous
-    //    enough for a teacher correcting a mistake — 1000 covers that.)
+    //  - `xp` cannot jump by more than 20000 in a single update, or start
+    //    above 20000 on create. This has to clear the biggest LEGITIMATE
+    //    single write, not just a typical one: a custom quiz can run up to
+    //    280 questions (quiz-game/index.html, customN max="280"), and the
+    //    client's own anti-cheat clamp (maxPlausibleXp in quiz-game/store.js)
+    //    already allows up to 65 XP/question (10 base + 15 streak bonus +
+    //    margin) plus a per-mode completion bonus — 280*65+100 = 18300 XP —
+    //    before it even reaches Firestore. The old cap of 1000 sat far below
+    //    that, so a full run's legitimate write was being silently rejected.
+    //    20000 gives that ~18300 ceiling headroom while still blocking an
+    //    obvious bogus one-shot value like 999999999. (The dashboard's own
+    //    "Adjust XP" tool writes an exact value in one call, so keep this
+    //    generous enough for a teacher correcting a mistake too.)
     match /students/{id} {
       allow read: if true;
-      allow create: if request.resource.data.get('xp', 0) <= 1000;
+      allow create: if request.resource.data.get('xp', 0) <= 20000;
       allow update: if request.resource.data.name == resource.data.name
-                    && request.resource.data.get('xp', 0) <= resource.data.get('xp', 0) + 1000;
+                    && request.resource.data.get('xp', 0) <= resource.data.get('xp', 0) + 20000;
       allow delete: if true;
     }
 
@@ -116,6 +123,17 @@ service cloud.firestore {
     // past its due date; and `state` may only be "in_progress" or
     // "handed_in" — "marked" is derived for display by the dashboard (joining
     // against `responses`) and is never something a write here may claim.
+    //
+    // The MC-count ceiling for a task: hand-picked tasks are capped at the
+    // literal mcIds list; generated tasks (rules.targetCount set, up to 500)
+    // are capped at targetCount * 2 — the headroom covers mastery mode
+    // (recycleMissed / finishStreak) appending re-queued questions.
+    function taskMcCap(task) {
+      return (task.get('rules', null) != null && task.rules.get('targetCount', null) != null)
+          ? task.rules.targetCount * 2
+          : task.mcIds.size();
+    }
+
     match /taskAttempts/{attemptId} {
       allow read: if true;
       allow delete: if true;
@@ -124,7 +142,7 @@ service cloud.firestore {
             && exists(/databases/$(database)/documents/tasks/$(request.resource.data.taskId))
             && get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data.status != 'closed'
             && !taskPastDue(get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data)
-            && request.resource.data.get('mcTotal', 0) <= get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data.mcIds.size()
+            && request.resource.data.get('mcTotal', 0) <= taskMcCap(get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data)
             && request.resource.data.get('state', 'in_progress') in ['in_progress', 'handed_in'];
     }
 

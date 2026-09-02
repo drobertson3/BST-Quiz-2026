@@ -1165,6 +1165,11 @@ textarea:focus{outline:2px solid var(--accent)}
   <div id="scr-taskrun" class="screen">
     <div class="quizhead" style="margin-bottom:12px">
       <span class="chip" id="trCounter"></span>
+      <span class="chip lives" id="trLives" style="display:none"></span>
+      <span class="chip streak" id="trStreak" style="display:none"></span>
+      <span class="chip timer" id="trQTimer" style="display:none"></span>
+      <span class="chip timer" id="trTotalTimer" style="display:none"></span>
+      <span class="chip" id="trFocusChip" style="display:none; font-size:.75rem"></span>
       <div class="pbar"><div id="trProgress"></div></div>
       <button class="btn small ghost" onclick="quitTaskRun()">Quit</button>
     </div>
@@ -1181,10 +1186,24 @@ textarea:focus{outline:2px solid var(--accent)}
         <div class="fh" id="trFbHead"></div>
         <div id="trFbExpl" style="font-size:.95rem; line-height:1.5"></div>
         <div id="trFbTags"></div>
+        <div id="trReflectBox" style="display:none; margin-top:12px">
+          <label class="muted" style="font-size:.85rem" for="trReflect">Why did you get this one wrong? (at least 10 characters)</label>
+          <textarea id="trReflect" style="margin-top:6px; min-height:70px" oninput="taskReflectInput()"></textarea>
+        </div>
         <div class="center" style="margin-top:14px">
           <button class="btn primary" id="trNextBtn" onclick="taskNextMC()">Next →</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ============ ASSIGNED TASK — forced restart overlay ============ -->
+  <div class="pauseveil" id="trRestartVeil">
+    <div class="card center" style="max-width:420px; padding:26px">
+      <div style="font-size:2rem">🔁</div>
+      <h2 style="margin:8px 0 4px" id="trRestartTitle">Restarting</h2>
+      <p class="muted" id="trRestartBody" style="line-height:1.6"></p>
+      <button class="btn primary" style="margin-top:14px" onclick="taskRestartAcknowledge()">Continue</button>
     </div>
   </div>
 
@@ -1257,6 +1276,10 @@ textarea:focus{outline:2px solid var(--accent)}
       <div class="muted" id="tdSub" style="margin-top:6px"></div>
       <div id="tdXp" style="margin-top:10px; font-weight:700; color:var(--accent2)"></div>
       <div id="tdBadges"></div>
+      <div id="tdCertBox" style="display:none; margin-top:16px">
+        <p class="muted">🏅 You've earned a completion certificate for this task.</p>
+        <button class="btn primary" onclick="taskPrintCertificate()">🖨️ Print certificate</button>
+      </div>
     </div>
     <div class="center row" style="justify-content:center; padding-bottom:30px">
       <button class="btn" onclick="renderHome();go('home')">Home</button>
@@ -2630,6 +2653,129 @@ function taskPastDue(t){
   return Date.now() > d.getTime();
 }
 
+// ---- Teacher Task-Setting Mode: rules engine (see TASK-MODE-PLAN.md §2/§4) ----
+// A task with no `rules` field (or rules:null) is a "legacy" task and MUST take
+// exactly the same code paths it always has — every function below defaults every
+// rule to "not enforced" so a legacy task's behaviour is unchanged byte-for-byte.
+function taskRules(t){
+  return Object.assign({
+    // A. question set
+    targetCount: null, pool: null, perStudentRandom: false, shuffleOrder: false,
+    weakSpotBias: false, recycleMissed: false,
+    // B. performance requirements
+    minAccuracy: null, graceQ: 10, passMark: null, finishStreak: null,
+    suddenDeath: false, lives: null, checkpointEvery: null,
+    // C. timing & pacing
+    perQuestionSec: null, totalTimeMin: null, minSecPerQ: null, opensAt: null, dailyMaxQ: null,
+    // D. attempts
+    maxAttempts: null, cooldownMin: null, scoreKeep: 'best',
+    // E. feedback & display
+    instantFeedback: true, showExplanations: true, showRunningScore: true,
+    // F. rewards & integrity
+    xpMultiplier: 1, bonusXp: null, completionBadge: null, focusStrict: false,
+    unlockCode: null, reflectOnWrong: false
+  }, (t && t.rules) || {});
+}
+function taskIsGenerated(t){ return !!taskRules(t).targetCount; }
+// Seed used for every deterministic pick this task makes. Shared across the whole
+// class unless perStudentRandom, in which case each student gets their own paper.
+function taskSeedStr(t, rules){
+  rules = rules || taskRules(t);
+  return rules.perStudentRandom ? (t.id + '|' + Store.slug(me.name)) : t.id;
+}
+// Pool filter for generated tasks — topics/subs/year range. Falls back to the
+// whole bank when the filter matches nothing (per §2.1: "null pool + targetCount
+// = whole bank").
+function taskFilteredPool(rules){
+  const p = rules.pool;
+  if (!p) return QUESTIONS;
+  const hasFilter = (p.topics && p.topics.length) || (p.subs && p.subs.length) || p.yearFrom || p.yearTo;
+  if (!hasFilter) return QUESTIONS;
+  const pool = QUESTIONS.filter(q => {
+    if (p.topics && p.topics.length && !p.topics.includes(q.topic)) return false;
+    if (p.subs && p.subs.length && !q.subs.some(s => p.subs.includes(q.topic + '|' + s) || p.subs.includes(s))) return false;
+    if (p.yearFrom && q.year < p.yearFrom) return false;
+    if (p.yearTo && q.year > p.yearTo) return false;
+    return true;
+  });
+  return pool.length ? pool : QUESTIONS;
+}
+// Weak-spot weighting reuses the same per-sub accuracy figures the Weak Spots
+// mode is built on (me.totals.perSub, updated by every mode's commitAttempt) —
+// no new stat is invented for this.
+function taskSubAccuracy(subKey){
+  const v = me.totals && me.totals.perSub && me.totals.perSub[subKey];
+  return (v && v[1]) ? v[0] / v[1] : 0.5;   // untested areas score as "average" rather than "weakest"
+}
+function taskWeakScore(q){
+  const accs = (q.subs || []).map(s => taskSubAccuracy(q.topic + '|' + s));
+  return accs.length ? Math.min(...accs) : 0.5;
+}
+function taskSeededShuffle(arr, rng){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+// Deterministic generated question list (§2.3): repeated full shuffles of the
+// (optionally weak-spot-weighted) pool, concatenated until there are enough
+// questions, then sliced to length — so repeats only begin once the pool is
+// exhausted, and every question is seen once per lap. Calling this again with a
+// larger `count` against the same seed reproduces the same prefix and simply
+// runs the loop further, which is what lets recycleMissed/finishStreak "extend"
+// a generated paper deterministically mid-run.
+function taskBuildGeneratedIds(rules, seedStr, count){
+  const pool = taskFilteredPool(rules);
+  const rng = mulberry32(seedFrom(seedStr));
+  const target = count || rules.targetCount || 0;
+  const ids = [];
+  let guard = 0;
+  while (ids.length < target && guard++ < 400) {
+    let cyclePool = pool;
+    if (rules.weakSpotBias) {
+      const sorted = pool.slice().sort((a, b) => taskWeakScore(a) - taskWeakScore(b));
+      const weakThird = sorted.slice(0, Math.max(1, Math.ceil(sorted.length / 3)));
+      cyclePool = sorted.concat(weakThird, weakThird);   // weakest third appears 3x per lap, the rest once
+    }
+    ids.push(...taskSeededShuffle(cyclePool, rng).map(q => q.id));
+  }
+  return ids.slice(0, target);
+}
+// shuffleOrder on a hand-picked (non-generated) list: shuffle the task's full
+// mcIds once, deterministically, then filter out already-answered ids — so the
+// order is stable across resumes.
+function taskOrderedIds(ids, seedStr){
+  const rng = mulberry32(seedFrom(seedStr + '|order'));
+  return taskSeededShuffle(ids, rng);
+}
+// Compact rules summary chips, shared format with the teacher dashboard's
+// taskCardHtml (e.g. "500Q · ≥70% · ♥5 · ⏱90m · best-of").
+function taskRulesChips(rules){
+  const chips = [];
+  if (rules.targetCount) chips.push(rules.targetCount + 'Q');
+  if (rules.minAccuracy) chips.push('≥' + rules.minAccuracy + '%');
+  if (rules.passMark) chips.push('pass ' + rules.passMark + '%');
+  if (rules.suddenDeath) chips.push('💀 sudden death');
+  if (rules.lives) chips.push('♥' + rules.lives);
+  if (rules.finishStreak) chips.push('🔥' + rules.finishStreak + ' to finish');
+  if (rules.checkpointEvery) chips.push('checkpoint/' + rules.checkpointEvery);
+  if (rules.perQuestionSec) chips.push('⏱' + rules.perQuestionSec + 's/Q');
+  if (rules.totalTimeMin) chips.push('⏱' + rules.totalTimeMin + 'm');
+  if (rules.dailyMaxQ) chips.push(rules.dailyMaxQ + '/day');
+  if (rules.maxAttempts) chips.push(rules.maxAttempts + ' attempt' + (rules.maxAttempts === 1 ? '' : 's'));
+  if (rules.cooldownMin) chips.push(rules.cooldownMin + 'm cooldown');
+  if (rules.scoreKeep === 'last') chips.push('last score');
+  else if (rules.targetCount || rules.maxAttempts) chips.push('best-of');
+  if (rules.xpMultiplier === 0) chips.push('0×XP (assessment)');
+  else if (rules.xpMultiplier && rules.xpMultiplier !== 1) chips.push(rules.xpMultiplier + '×XP');
+  if (!rules.instantFeedback) chips.push('exam conditions');
+  if (rules.unlockCode) chips.push('🔒 code needed');
+  if (rules.opensAt && Date.now() < new Date(rules.opensAt).getTime()) chips.push('opens ' + new Date(rules.opensAt).toLocaleDateString('en-AU', {day:'numeric', month:'short'}));
+  if (rules.recycleMissed) chips.push('recycles misses');
+  if (rules.weakSpotBias) chips.push('🎯 weak-spot weighted');
+  if (rules.focusStrict) chips.push('👁 focus monitored');
+  return chips;
+}
+
 async function refreshMyTasks(){
   try {
     const [allTasks, allAttempts] = await Promise.all([Store.getAllTasks(), Store.getAllTaskAttempts()]);
@@ -2649,6 +2795,7 @@ function taskStatePillHtml(state){
     in_progress: ['rgba(255,206,84,.16)', 'var(--gold)', 'In progress'],
     handed_in:   ['rgba(255,206,84,.22)', 'var(--gold)', 'Handed in'],
     marked:      ['rgba(0,214,143,.16)', 'var(--good)', 'Marked'],
+    failed:      ['rgba(227,77,104,.16)', 'var(--bad)', 'Out of attempts'],
   };
   const [bg, fg, label] = map[state] || map.not_started;
   return `<span class="pill" style="background:${bg}; color:${fg}">${label}</span>`;
@@ -2658,13 +2805,15 @@ function taskStatePillHtml(state){
 // quiz-teacher/index.html) so the two sides always agree on what "state"
 // means for a given student.
 function taskCardHtmlStudent(t, allAttempts, myResponses){
+  const rules = taskRules(t);
   const attempt = allAttempts.find(a => a.taskId === t.id && a.name === me.name);
   const saResp = myResponses.filter(r => r.taskId === t.id);
   const saMarked = saResp.filter(r => r.status === 'marked');
   const saTotal = (t.saIds||[]).length;
-  const mcTotalTask = (t.mcIds||[]).length;
+  const mcTotalTask = rules.targetCount || (t.mcIds||[]).length;
   let state = attempt ? attempt.state : (saResp.length ? 'handed_in' : 'not_started');
   if (state === 'handed_in' && (saTotal === 0 || saMarked.length >= saTotal)) state = 'marked';
+  if (attempt && attempt.failed && state !== 'marked') state = 'failed';
   const mcScore = attempt ? (attempt.mcScore||0) : 0;
   const mcTotal = attempt ? (attempt.mcTotal || mcTotalTask) : mcTotalTask;
   const saMarkSum = saMarked.reduce((a,r) => a + (r.mark||0), 0);
@@ -2675,18 +2824,33 @@ function taskCardHtmlStudent(t, allAttempts, myResponses){
   const overdue = taskPastDue(t) && state !== 'handed_in' && state !== 'marked';
   const closed = t.status === 'closed';
   const dueStr = t.due ? new Date(t.due + 'T00:00:00Z').toLocaleDateString('en-AU', {day:'numeric', month:'short', year:'numeric'}) : null;
+  const notYetOpen = rules.opensAt && Date.now() < new Date(rules.opensAt).getTime();
+  const onCooldown = attempt && attempt.cooldownUntil && Date.now() < new Date(attempt.cooldownUntil).getTime();
 
   let actionBtn;
   if (state === 'handed_in' || state === 'marked') {
     actionBtn = `<button class="btn small primary" onclick="openTaskResults('${t.id}')">View results</button>`;
   } else if (closed || overdue) {
     actionBtn = `<button class="btn small" disabled>Closed</button>`;
+  } else if (state === 'failed') {
+    actionBtn = `<button class="btn small" disabled title="Ask your teacher to reset this attempt">Out of attempts</button>`;
+  } else if (notYetOpen) {
+    actionBtn = `<button class="btn small" disabled>Not open yet</button>`;
+  } else if (onCooldown) {
+    const mins = Math.ceil((new Date(attempt.cooldownUntil).getTime() - Date.now()) / 60000);
+    actionBtn = `<button class="btn small" disabled>Wait ${mins}m</button>`;
   } else {
     actionBtn = `<button class="btn small primary" onclick="openTask('${t.id}')">${state === 'in_progress' ? 'Resume →' : 'Start →'}</button>`;
   }
 
   const scoreLine = (state === 'marked' && pct != null) ? `<b style="color:var(--good)">${pct}%</b>`
     : (mcTotalTask && attempt) ? `${mcScore}/${mcTotal} MC` + (saTotal ? ' · SA with your teacher' : '') : '';
+
+  const chips = taskRulesChips(rules);
+  const attemptLine = (attempt && (attempt.attemptNo||1) > 1) ? `Attempt ${attempt.attemptNo}` +
+    (rules.maxAttempts ? ' of ' + rules.maxAttempts : '') + (attempt.restarts ? ' · ' + attempt.restarts + ' restart' + (attempt.restarts===1?'':'s') : '') : '';
+  const livesLine = (rules.lives && attempt && attempt.livesLeft != null && state === 'in_progress')
+    ? '<span class="lives">' + '♥'.repeat(Math.max(0,attempt.livesLeft)) + '🖤'.repeat(Math.max(0,rules.lives-attempt.livesLeft)) + '</span>' : '';
 
   return `<div class="taskcard${overdue ? ' overdue' : ''}">
     <div class="row" style="justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px">
@@ -2697,7 +2861,9 @@ function taskCardHtmlStudent(t, allAttempts, myResponses){
             ? (overdue ? '<span style="color:var(--bad); font-weight:700">Overdue — was due ' + dueStr + '</span>' : 'Due ' + dueStr)
             : 'No due date'}${mcTotalTask ? ' · ' + mcTotalTask + ' MC' : ''}${saTotal ? ' · ' + saTotal + ' marks SA' : ''}
         </div>
-        ${scoreLine ? `<div style="margin-top:6px">${scoreLine}</div>` : ''}
+        ${chips.length ? `<div style="margin-top:6px">${chips.map(c => `<span class="chip" style="padding:2px 8px; font-size:.72rem; margin-right:4px">${esc(c)}</span>`).join('')}</div>` : ''}
+        ${scoreLine ? `<div style="margin-top:6px">${scoreLine} ${livesLine}</div>` : ''}
+        ${attemptLine ? `<div class="muted" style="margin-top:4px; font-size:.8rem">${esc(attemptLine)}</div>` : ''}
       </div>
       <div class="row" style="flex-shrink:0">
         ${actionBtn}
@@ -2724,91 +2890,442 @@ async function openTask(taskId){
     return;
   }
 
-  const answeredMc = new Set(Object.keys((attempt && attempt.mc) || {}));
-  const mcQs = (task.mcIds||[]).map(id => QUESTIONS.find(q => q.id === id)).filter(q => q && !answeredMc.has(q.id));
+  const rules = taskRules(task);
+
+  // ---- start gating (all no-ops for a legacy task, since every rule defaults to null/off) ----
+  if (rules.opensAt && Date.now() < new Date(rules.opensAt).getTime()) {
+    alert('This task opens ' + new Date(rules.opensAt).toLocaleString('en-AU', {dateStyle:'medium', timeStyle:'short'}) + ' — come back then.');
+    return;
+  }
+  if (attempt && attempt.failed) {
+    alert("You're out of attempts on this task — ask your teacher to reset your attempt if you think that's a mistake.");
+    return;
+  }
+  if (rules.maxAttempts && attempt && (attempt.attemptNo || 1) > rules.maxAttempts) {
+    alert("You're out of attempts on this task (" + rules.maxAttempts + " allowed) — ask your teacher to reset your attempt.");
+    return;
+  }
+  if (attempt && attempt.cooldownUntil && Date.now() < new Date(attempt.cooldownUntil).getTime()) {
+    const mins = Math.ceil((new Date(attempt.cooldownUntil).getTime() - Date.now()) / 60000);
+    alert('You need to wait ' + mins + ' more minute' + (mins === 1 ? '' : 's') + ' before starting again.');
+    return;
+  }
+  const today = dateKey();
+  if (rules.dailyMaxQ && attempt && attempt.dailyLog && (attempt.dailyLog[today] || 0) >= rules.dailyMaxQ) {
+    alert("You've reached today's question limit for this task (" + rules.dailyMaxQ + '). Come back tomorrow to keep going.');
+    return;
+  }
+  if (rules.unlockCode) {
+    const code = prompt('Enter the unlock code your teacher gave you to start this task:');
+    if (code == null) return;
+    if (code.trim().toUpperCase() !== rules.unlockCode.trim().toUpperCase()) { alert('That code is not right — check with your teacher.'); return; }
+  }
+
+  const seedStr = taskSeedStr(task, rules);
+  let mcQs, seqKeys, mcAnsweredTotal, mcGrandTotal, genIds = null, seqCounter = 0;
+
+  if (rules.targetCount) {
+    genIds = taskBuildGeneratedIds(rules, seedStr, rules.targetCount);
+    const answeredSeq = Object.keys((attempt && attempt.mc) || {}).filter(k => /^s\d+$/.test(k));
+    mcAnsweredTotal = answeredSeq.length;
+    seqCounter = mcAnsweredTotal;
+    mcQs = []; seqKeys = [];
+    for (let i = mcAnsweredTotal; i < genIds.length; i++) {
+      const q = QUESTIONS.find(x => x.id === genIds[i]);
+      if (q) { mcQs.push(q); seqKeys.push('s' + String(i).padStart(3, '0')); seqCounter = i + 1; }
+    }
+    mcGrandTotal = rules.targetCount;
+  } else {
+    const answeredMc = new Set(Object.keys((attempt && attempt.mc) || {}));
+    let fullIds = task.mcIds || [];
+    if (rules.shuffleOrder) fullIds = taskOrderedIds(fullIds, seedStr);
+    const remainIds = fullIds.filter(id => !answeredMc.has(id));
+    mcQs = remainIds.map(id => QUESTIONS.find(q => q.id === id)).filter(Boolean);
+    seqKeys = mcQs.map(q => q.id);
+    mcAnsweredTotal = answeredMc.size;
+    mcGrandTotal = (task.mcIds || []).length;
+  }
+
   const myResp = await Store.getResponsesFor(me.name);
   const doneSaIds = new Set(myResp.filter(r => r.taskId === task.id).map(r => r.qid));
   const saQs = (task.saIds||[]).map(id => SA_QUESTIONS.find(q => q.id === id)).filter(q => q && !doneSaIds.has(q.id));
 
   if (!attempt) {
-    attempt = {taskId: task.id, name: me.name, startedAt: Date.now(), finishedAt: null, mc: {}, mcScore: 0, mcTotal: 0, state: 'in_progress'};
+    attempt = {taskId: task.id, name: me.name, startedAt: Date.now(), finishedAt: null, mc: {}, mcScore: 0, mcTotal: 0, state: 'in_progress',
+      attemptNo: 1, restarts: 0, restartReasons: [], bestPct: null, lastPct: null, failed: false,
+      livesLeft: rules.lives || null, checkpointAt: 0, streakNow: 0, dailyLog: {}, cooldownUntil: null,
+      focusFlags: 0, reflections: {}, timeUsedSec: 0, seed: seedStr, bonusPaid: false};
     await Store.saveTaskAttempt(task.id, me.name, attempt);
   }
+  if (attempt.livesLeft == null && rules.lives) attempt.livesLeft = rules.lives;
 
-  taskRun = { task, attempt, mcQs, mcI: 0, mcAnsweredTotal: answeredMc.size, mcGrandTotal: (task.mcIds||[]).length,
+  taskRun = { task, rules, seedStr, attempt, mcQs, seqKeys, seqCounter, genLen: genIds ? genIds.length : 0,
+              mcI: 0, mcAnsweredTotal, mcGrandTotal,
               saQs, saI: 0, saAnsweredBefore: doneSaIds.size, saGrandTotal: (task.saIds||[]).length,
               sessionAnswers: [], mcT0: Date.now(), saXpSession: 0, saSubmittedSession: 0,
-              saResultsSession: [], newBadges: [], xpEarned: 0 };
+              saResultsSession: [], newBadges: [], xpEarned: 0,
+              livesLeft: attempt.livesLeft != null ? attempt.livesLeft : rules.lives,
+              streakNow: attempt.streakNow || 0,
+              dailyLog: attempt.dailyLog || {}, focusFlags: attempt.focusFlags || 0,
+              reflections: attempt.reflections || {}, timeUsedSec: attempt.timeUsedSec || 0,
+              qTimeLeft: null, totalTimeLeft: rules.totalTimeMin ? Math.max(0, rules.totalTimeMin * 60 - (attempt.timeUsedSec || 0)) : null,
+              perQTimer: null, totalTimer: null, pendingReflect: false };
 
   if (!mcQs.length && !saQs.length) { await finishTaskRun(); return; }   // nothing left unanswered for this student
+  taskFocusListenerAttach();
+  taskStartTotalTimer();
   if (mcQs.length) { go('taskrun'); showTaskMCQuestion(); }
   else { go('tasksa'); showTaskSAQuestion(); }
 }
 
 function quitTaskRun(){
   if (confirm('Quit this task? Anything you have already answered or handed in is saved — you can come back and finish later.')) {
+    taskTeardownTimers();
     taskRun = null; renderHome(); go('home');
   }
+}
+
+// ---- focus monitoring (rules.focusStrict) — only active during a strict task run ----
+function taskFocusHandler(){
+  if (!taskRun || !taskRun.rules.focusStrict) return;
+  taskRun.focusFlags = (taskRun.focusFlags || 0) + 1;
+  const chip = $('trFocusChip'); if (chip) chip.textContent = '👁 focus monitored · ' + taskRun.focusFlags + ' away';
+  Store.saveTaskAttempt(taskRun.task.id, me.name, {focusFlags: taskRun.focusFlags}).catch(()=>{});
+}
+function taskFocusListenerAttach(){
+  document.addEventListener('visibilitychange', taskFocusHandler);
+  window.addEventListener('blur', taskFocusHandler);
+}
+function taskFocusListenerDetach(){
+  document.removeEventListener('visibilitychange', taskFocusHandler);
+  window.removeEventListener('blur', taskFocusHandler);
+}
+function taskTeardownTimers(){
+  taskFocusListenerDetach();
+  if (taskRun && taskRun.perQTimer) clearInterval(taskRun.perQTimer);
+  if (taskRun && taskRun.totalTimer) clearInterval(taskRun.totalTimer);
+}
+// Overall attempt clock (rules.totalTimeMin) — ticks in the background across
+// both the MC and SA phases; expiry auto-hands-in whatever is done so far.
+function taskStartTotalTimer(){
+  if (!taskRun || !taskRun.rules.totalTimeMin) return;
+  clearInterval(taskRun.totalTimer);
+  taskRun.totalTimer = setInterval(() => {
+    if (!taskRun) { clearInterval(taskRun && taskRun.totalTimer); return; }
+    taskRun.totalTimeLeft = Math.max(0, taskRun.totalTimeLeft - 1);
+    taskRun.timeUsedSec = (taskRun.timeUsedSec || 0) + 1;
+    const chip = $('trTotalTimer');
+    if (chip) {
+      const m = Math.floor(taskRun.totalTimeLeft / 60), s = taskRun.totalTimeLeft % 60;
+      chip.textContent = '⏱ total ' + m + ':' + String(s).padStart(2, '0');
+      chip.classList.toggle('low', taskRun.totalTimeLeft <= 60);
+    }
+    if (taskRun.totalTimeLeft <= 0) {
+      clearInterval(taskRun.totalTimer);
+      alert("Time's up — handing in whatever you've completed so far.");
+      finishTaskRun(true);
+    }
+  }, 1000);
 }
 
 // ---- MC phase ----
 function showTaskMCQuestion(){
   const q = taskRun.mcQs[taskRun.mcI];
+  const r = taskRun.rules;
   $('trCounter').textContent = (taskRun.mcAnsweredTotal + taskRun.mcI + 1) + ' / ' + taskRun.mcGrandTotal;
   $('trProgress').style.width = ((taskRun.mcAnsweredTotal + taskRun.mcI) / taskRun.mcGrandTotal * 100) + '%';
+  $('trCounter').style.display = r.showRunningScore === false ? 'none' : '';
+  $('trProgress').parentElement.style.visibility = r.showRunningScore === false ? 'hidden' : 'visible';
   $('trMeta').textContent = q.year + ' HSC · Question ' + q.n;
   $('trImg').src = q.img; $('trImg').alt = q.year + ' HSC Question ' + q.n;
   $('trFeedback').style.display = 'none';
   $('trFeedback').className = 'feedback';
+  $('trReflectBox').style.display = 'none';
+  $('trReflect').value = '';
+  $('trNextBtn').disabled = false;
+  taskRun.pendingReflect = false;
   document.querySelectorAll('#trAns .ansbtn').forEach(b => { b.disabled = false; b.className = 'ansbtn'; });
   taskRun.qShownAt = Date.now();   // same anti-scripting guard as the ordinary quiz (see answer())
+
+  const livesChip = $('trLives');
+  if (r.lives) { livesChip.style.display = ''; livesChip.textContent = '♥'.repeat(Math.max(0, taskRun.livesLeft)) + '🖤'.repeat(Math.max(0, r.lives - taskRun.livesLeft)); }
+  else livesChip.style.display = 'none';
+  const streakChip = $('trStreak');
+  if (r.finishStreak) { streakChip.style.display = ''; streakChip.textContent = '🔥 ' + taskRun.streakNow + '/' + r.finishStreak; }
+  else streakChip.style.display = 'none';
+  $('trTotalTimer').style.display = r.totalTimeMin ? '' : 'none';
+  const focusChip = $('trFocusChip');
+  if (r.focusStrict) { focusChip.style.display = ''; focusChip.textContent = '👁 focus monitored' + (taskRun.focusFlags ? ' · ' + taskRun.focusFlags + ' away' : ''); }
+  else focusChip.style.display = 'none';
+
+  taskStartQTimer();
   window.scrollTo(0,0);
 }
 
-async function taskAnswerMC(letter){
+// Per-question countdown (rules.perQuestionSec). Timeout is graded as a wrong answer.
+function taskStartQTimer(){
+  clearInterval(taskRun.perQTimer);
+  const r = taskRun.rules;
+  const chip = $('trQTimer');
+  if (!r.perQuestionSec) { chip.style.display = 'none'; return; }
+  chip.style.display = '';
+  taskRun.qTimeLeft = r.perQuestionSec;
+  const paint = () => { chip.textContent = '⏱ ' + taskRun.qTimeLeft + 's'; chip.classList.toggle('low', taskRun.qTimeLeft <= 5); };
+  paint();
+  taskRun.perQTimer = setInterval(() => {
+    if (!taskRun) return;
+    taskRun.qTimeLeft--;
+    paint();
+    if (taskRun.qTimeLeft <= 0) { clearInterval(taskRun.perQTimer); taskAnswerMC(null, true); }
+  }, 1000);
+}
+
+async function taskAnswerMC(letter, timedOut){
   // one grade per question — same debounce as the ordinary quiz's answer()
   if (!taskRun || $('trFeedback').style.display === 'block') return;
+  clearInterval(taskRun.perQTimer);
+  const r = taskRun.rules;
   const q = taskRun.mcQs[taskRun.mcI];
-  const right = q.ans.includes(letter);
-  const tooFast = (Date.now() - (taskRun.qShownAt || 0)) < 1500;   // correct still counts for the record, just earns no XP
+  const right = !timedOut && q.ans.includes(letter);
+  const minGap = r.minSecPerQ != null ? r.minSecPerQ * 1000 : 1500;   // correct still counts for the record, just earns no XP
+  const tooFast = !timedOut && (Date.now() - (taskRun.qShownAt || 0)) < minGap;
   document.querySelectorAll('#trAns .ansbtn').forEach(b => {
     b.disabled = true;
-    if (b.dataset.l === letter) b.classList.add(right ? 'correct' : 'wrong');
+    if (!timedOut && b.dataset.l === letter) b.classList.add(right ? 'correct' : 'wrong');
     else if (q.ans.includes(b.dataset.l)) b.classList.add('reveal');
   });
 
+  const key = taskRun.seqKeys[taskRun.mcI];
   taskRun.attempt.mc = taskRun.attempt.mc || {};
-  taskRun.attempt.mc[q.id] = {pick: letter, ok: right};
+  taskRun.attempt.mc[key] = r.targetCount ? {qid: q.id, pick: timedOut ? '–' : letter, ok: right, counted: right && !tooFast}
+                                           : {pick: timedOut ? '–' : letter, ok: right, counted: right && !tooFast};
   taskRun.attempt.mcScore = Object.values(taskRun.attempt.mc).filter(x => x.ok).length;
   taskRun.attempt.mcTotal = Object.keys(taskRun.attempt.mc).length;
   taskRun.attempt.state = 'in_progress';
   taskRun.sessionAnswers.push({id: q.id, right, counted: right && !tooFast});
 
-  const fb = $('trFeedback');
-  fb.classList.add(right ? 'good' : 'bad');
-  const ansText = q.ans.join(' or ');
-  $('trFbHead').textContent = right ? '✅ Correct!' : '❌ Not quite — the answer is ' + ansText;
-  $('trFbExpl').textContent = q.expl;
-  $('trFbTags').innerHTML = `<span class="tag" style="color:${TOPIC_COLORS[q.topic]}">${q.topic}</span>` +
-    q.subs.map(s => `<span class="tag">${s}</span>`).join('');
-  const isLastMc = taskRun.mcI === taskRun.mcQs.length - 1;
-  $('trNextBtn').textContent = isLastMc ? (taskRun.saQs.length ? 'Continue to short answer →' : 'Finish →') : 'Next →';
-  fb.style.display = 'block';
-  fb.scrollIntoView({behavior:'smooth', block:'nearest'});
+  // streak / lives bookkeeping
+  taskRun.streakNow = right ? (taskRun.streakNow + 1) : 0;
+  if (!right && r.lives) taskRun.livesLeft = Math.max(0, taskRun.livesLeft - 1);
+  const today = dateKey();
+  if (r.dailyMaxQ) taskRun.dailyLog[today] = (taskRun.dailyLog[today] || 0) + 1;
+  taskRun.attempt.streakNow = taskRun.streakNow;
+  taskRun.attempt.livesLeft = taskRun.livesLeft;
+  taskRun.attempt.dailyLog = taskRun.dailyLog;
+  taskRun.attempt.timeUsedSec = taskRun.timeUsedSec;
 
   // save progress as we go — merge:true so this can never clobber an earlier question's pick
   try {
     await Store.saveTaskAttempt(taskRun.task.id, me.name, {
       mc: taskRun.attempt.mc, mcScore: taskRun.attempt.mcScore, mcTotal: taskRun.attempt.mcTotal,
-      state: 'in_progress', startedAt: taskRun.attempt.startedAt
+      state: 'in_progress', startedAt: taskRun.attempt.startedAt, streakNow: taskRun.streakNow,
+      livesLeft: taskRun.livesLeft, dailyLog: taskRun.dailyLog, timeUsedSec: taskRun.timeUsedSec
     });
   } catch(e){ /* best-effort; the final save in finishTaskRun/taskAfterMC still lands the answer */ }
+
+  // ---- in-run enforcement: restart / cap triggers, in order ----
+  if (r.dailyMaxQ && (taskRun.dailyLog[today] || 0) >= r.dailyMaxQ) { taskDailyCapReached(); return; }
+  if (!right && r.suddenDeath) { taskRestart('sudden death@Q' + (taskRun.mcAnsweredTotal + taskRun.mcI + 1)); return; }
+  if (r.lives && taskRun.livesLeft <= 0) { taskRestart('out of lives@Q' + (taskRun.mcAnsweredTotal + taskRun.mcI + 1)); return; }
+  if (r.minAccuracy && taskRun.attempt.mcTotal > r.graceQ) {
+    const pct = taskRun.attempt.mcScore / taskRun.attempt.mcTotal * 100;
+    if (pct < r.minAccuracy) { taskRestart('accuracy@Q' + (taskRun.mcAnsweredTotal + taskRun.mcI + 1)); return; }
+  }
+
+  // exam conditions (instantFeedback:false) takes precedence over reflectOnWrong —
+  // there is nothing to reflect on when no right/wrong is ever shown.
+  if (r.instantFeedback === false) { taskNextMC(); return; }
+
+  if (!right && r.reflectOnWrong) {
+    $('trReflectBox').style.display = 'block';
+    taskRun.pendingReflect = true;
+  }
+
+  const fb = $('trFeedback');
+  fb.classList.add(right ? 'good' : 'bad');
+  const ansText = q.ans.join(' or ');
+  $('trFbHead').textContent = timedOut ? '⏱ Time\'s up — the answer is ' + ansText : (right ? '✅ Correct!' : '❌ Not quite — the answer is ' + ansText);
+  $('trFbExpl').textContent = (r.showExplanations === false) ? '' : q.expl;
+  $('trFbTags').innerHTML = (r.showExplanations === false) ? '' : `<span class="tag" style="color:${TOPIC_COLORS[q.topic]}">${q.topic}</span>` +
+    q.subs.map(s => `<span class="tag">${s}</span>`).join('');
+  const isLastMc = taskRun.mcI === taskRun.mcQs.length - 1;
+  $('trNextBtn').textContent = isLastMc ? (taskRun.saQs.length ? 'Continue to short answer →' : 'Finish →') : 'Next →';
+  fb.style.display = 'block';
+  fb.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
-function taskNextMC(){
+function taskReflectInput(){
+  const ok = $('trReflect').value.trim().length >= 10;
+  $('trNextBtn').disabled = taskRun.pendingReflect && !ok;
+}
+
+async function taskNextMC(){
+  if (taskRun.pendingReflect) {
+    const text = $('trReflect').value.trim();
+    if (text.length < 10) { alert('Say a little more about why you got this one wrong (at least 10 characters) before moving on.'); return; }
+    const key = taskRun.seqKeys[taskRun.mcI];
+    taskRun.reflections[key] = text.slice(0, 500);
+    taskRun.attempt.reflections = taskRun.reflections;
+    taskRun.pendingReflect = false;
+    $('trNextBtn').disabled = false;
+    try { await Store.saveTaskAttempt(taskRun.task.id, me.name, {reflections: taskRun.reflections}); } catch(e){}
+  }
   taskRun.mcI++;
-  if (taskRun.mcI >= taskRun.mcQs.length) taskAfterMC();
-  else showTaskMCQuestion();
+  if (taskRun.mcI >= taskRun.mcQs.length) {
+    if (taskExtendIfNeeded()) { showTaskMCQuestion(); return; }
+    taskAfterMC();
+  } else showTaskMCQuestion();
+}
+
+// recycleMissed / finishStreak keep a task going past the end of its list until
+// their condition is met — this decides whether to keep going or let the run finish.
+function taskExtendIfNeeded(){
+  const r = taskRun.rules;
+  const mcMap = taskRun.attempt.mc || {};
+  if (r.recycleMissed) {
+    const okByQid = {};
+    for (const k of Object.keys(mcMap)) {
+      const v = mcMap[k];
+      const qid = r.targetCount ? v.qid : k;
+      if (v.ok) okByQid[qid] = true; else if (!(qid in okByQid)) okByQid[qid] = false;
+    }
+    const missed = Object.keys(okByQid).filter(qid => !okByQid[qid]);
+    if (missed.length) {
+      const rng = mulberry32(seedFrom(taskRun.seedStr + '|recycle|' + Object.keys(mcMap).length));
+      taskAppendQueue(taskSeededShuffle(missed, rng));
+      return true;
+    }
+  }
+  if (r.finishStreak && taskRun.streakNow < r.finishStreak) {
+    const need = r.finishStreak - taskRun.streakNow;
+    let extra;
+    if (r.targetCount) {
+      const newLen = taskRun.genLen + need;
+      const grown = taskBuildGeneratedIds(r, taskRun.seedStr, newLen);
+      extra = grown.slice(taskRun.genLen, newLen);
+      taskRun.genLen = newLen;
+    } else {
+      const rng = mulberry32(seedFrom(taskRun.seedStr + '|streak|' + Object.keys(mcMap).length));
+      extra = taskSeededShuffle(taskRun.task.mcIds || [], rng).slice(0, need);
+    }
+    if (extra.length) { taskAppendQueue(extra); return true; }
+  }
+  return false;
+}
+function taskAppendQueue(qids){
+  for (const qid of qids) {
+    const q = QUESTIONS.find(x => x.id === qid);
+    if (!q) continue;
+    taskRun.mcQs.push(q);
+    taskRun.seqKeys.push(taskRun.rules.targetCount ? 's' + String(taskRun.seqCounter++).padStart(3, '0') : qid);
+  }
+}
+
+function taskDailyCapReached(){
+  Store.saveTaskAttempt(taskRun.task.id, me.name, {
+    mc: taskRun.attempt.mc, mcScore: taskRun.attempt.mcScore, mcTotal: taskRun.attempt.mcTotal,
+    state: 'in_progress', dailyLog: taskRun.dailyLog
+  }).catch(()=>{});
+  taskTeardownTimers();
+  alert("You've reached today's question limit for this task — nice work. Your progress is saved; come back tomorrow to keep going.");
+  taskRun = null; renderHome(); go('home');
+}
+
+// ---- forced restart flow (minAccuracy / suddenDeath / lives) ----
+async function taskRestart(reason){
+  taskTeardownTimers();
+  const r = taskRun.rules;
+  const attempt = taskRun.attempt;
+  attempt.attemptNo = (attempt.attemptNo || 1) + 1;
+  attempt.restarts = (attempt.restarts || 0) + 1;
+  attempt.restartReasons = (attempt.restartReasons || []).concat(reason).slice(-20);
+
+  // record this failed attempt's % before wiping, for scoreKeep
+  const denom = taskRun.mcGrandTotal || attempt.mcTotal || 1;
+  const pct = Math.round((attempt.mcScore || 0) / denom * 100);
+  attempt.lastPct = pct;
+  attempt.bestPct = (attempt.bestPct == null) ? pct : Math.max(attempt.bestPct, pct);
+
+  // checkpointEvery: keep answers before the last checkpoint boundary, wipe the rest
+  const answeredCount = Object.keys(attempt.mc || {}).length;
+  const checkpointAt = r.checkpointEvery ? Math.floor(answeredCount / r.checkpointEvery) * r.checkpointEvery : 0;
+  attempt.checkpointAt = checkpointAt;
+  if (r.targetCount) {
+    const kept = {};
+    for (const [k, v] of Object.entries(attempt.mc || {})) {
+      const idx = parseInt(k.slice(1), 10);
+      if (idx < checkpointAt) kept[k] = v;
+    }
+    attempt.mc = kept;
+  } else {
+    // hand-picked lists have no stable "index" — checkpointEvery restarts them to
+    // question 1 of the remaining pool rather than a numbered boundary.
+    attempt.mc = checkpointAt > 0 ? attempt.mc : {};
+  }
+  attempt.mcScore = Object.values(attempt.mc).filter(x => x.ok).length;
+  attempt.mcTotal = Object.keys(attempt.mc).length;
+  attempt.streakNow = 0;
+  attempt.livesLeft = r.lives || null;
+  attempt.state = 'in_progress';
+
+  let cooldownMsg = '';
+  if (r.cooldownMin) {
+    attempt.cooldownUntil = new Date(Date.now() + r.cooldownMin * 60000).toISOString();
+    cooldownMsg = ' You can start again in ' + r.cooldownMin + ' minute' + (r.cooldownMin === 1 ? '' : 's') + '.';
+  }
+  let outOfAttempts = false;
+  if (r.maxAttempts && attempt.attemptNo > r.maxAttempts) {
+    attempt.failed = true;
+    outOfAttempts = true;
+  }
+
+  try {
+    await Store.saveTaskAttempt(taskRun.task.id, me.name, {
+      mc: attempt.mc, mcScore: attempt.mcScore, mcTotal: attempt.mcTotal, state: 'in_progress',
+      attemptNo: attempt.attemptNo, restarts: attempt.restarts, restartReasons: attempt.restartReasons,
+      lastPct: attempt.lastPct, bestPct: attempt.bestPct, checkpointAt: attempt.checkpointAt,
+      streakNow: 0, livesLeft: attempt.livesLeft, cooldownUntil: attempt.cooldownUntil || null, failed: attempt.failed || false
+    });
+  } catch(e){}
+
+  const reasonLabel = reason.split('@')[0].replace('accuracy', 'your accuracy fell below ' + r.minAccuracy + '%')
+    .replace('sudden death', 'sudden death — one wrong answer ends the run')
+    .replace('out of lives', 'you ran out of lives');
+  const qAt = checkpointAt || 1;
+  $('trRestartTitle').textContent = outOfAttempts ? "Out of attempts" : 'Restarting — attempt ' + attempt.attemptNo;
+  $('trRestartBody').textContent = outOfAttempts
+    ? 'That was your last attempt (' + r.maxAttempts + ' allowed). Ask your teacher to reset this task if you think that\'s a mistake.'
+    : reasonLabel + '. Restarting from question ' + qAt + '.' + cooldownMsg;
+  $('trRestartVeil').classList.add('on');
+  taskRun.restartExit = outOfAttempts || !!r.cooldownMin;
+}
+function taskRestartAcknowledge(){
+  $('trRestartVeil').classList.remove('on');
+  if (taskRun.restartExit) { taskRun = null; renderHome(); go('home'); return; }
+  taskRun.mcI = 0;
+  taskRun.mcAnsweredTotal = taskRun.attempt.mcTotal;
+  if (taskRun.rules.targetCount) {
+    taskRun.seqCounter = taskRun.mcAnsweredTotal;
+    taskRun.mcQs = []; taskRun.seqKeys = [];
+    const genIds = taskBuildGeneratedIds(taskRun.rules, taskRun.seedStr, Math.max(taskRun.genLen, taskRun.rules.targetCount));
+    for (let i = taskRun.mcAnsweredTotal; i < genIds.length; i++) {
+      const q = QUESTIONS.find(x => x.id === genIds[i]);
+      if (q) { taskRun.mcQs.push(q); taskRun.seqKeys.push('s' + String(i).padStart(3, '0')); }
+    }
+  } else {
+    const answeredMc = new Set(Object.keys(taskRun.attempt.mc || {}));
+    let fullIds = taskRun.task.mcIds || [];
+    if (taskRun.rules.shuffleOrder) fullIds = taskOrderedIds(fullIds, taskRun.seedStr);
+    const remainIds = fullIds.filter(id => !answeredMc.has(id));
+    taskRun.mcQs = remainIds.map(id => QUESTIONS.find(q => q.id === id)).filter(Boolean);
+    taskRun.seqKeys = taskRun.mcQs.map(q => q.id);
+  }
+  taskRun.streakNow = 0;
+  taskRun.livesLeft = taskRun.rules.lives || null;
+  taskFocusListenerAttach();
+  taskStartTotalTimer();
+  if (!taskRun.mcQs.length) { finishTaskRun(); return; }
+  showTaskMCQuestion();
 }
 
 // Commit this session's MC answers to the student record through the exact
@@ -2827,7 +3344,8 @@ async function taskAfterMC(){
     }
     const attempt = {d: Date.now(), n: taskRun.sessionAnswers.length, c: correct, timeSec, timed: false, mode: 'task', topics, subs};
     const countedCorrect = taskRun.sessionAnswers.filter(a => a.counted).length;
-    const xpGain = clampXpGain(attempt, countedCorrect * QUIZ_OPTIONS.xpPerCorrect);
+    const mult = taskRun.rules.xpMultiplier != null ? taskRun.rules.xpMultiplier : 1;
+    const xpGain = clampXpGain(attempt, countedCorrect * QUIZ_OPTIONS.xpPerCorrect * mult);
     taskRun.newBadges.push(...commitAttempt(attempt, taskRun.sessionAnswers, xpGain, 0));
     taskRun.xpEarned += xpGain;
     await saveMe();
@@ -2905,7 +3423,13 @@ async function taskSANext(){
 }
 
 // ---- finish ----
-async function finishTaskRun(){
+// `forceHandIn` is set when rules.totalTimeMin runs out — the clock expiring
+// hands in whatever is done so far, even if the question list isn't finished.
+async function finishTaskRun(forceHandIn){
+  taskTeardownTimers();
+  const r = taskRun.rules;
+  const attempt = taskRun.attempt;
+
   if (taskRun.saSubmittedSession) {
     const mySA = ensureSA(me);
     mySA.submitted += taskRun.saSubmittedSession;
@@ -2914,25 +3438,88 @@ async function finishTaskRun(){
     await saveMe();
   }
   const myResp = await Store.getResponsesFor(me.name);
-  const doneSaIds = new Set(myResp.filter(r => r.taskId === taskRun.task.id).map(r => r.qid));
-  const allSaDone = (taskRun.task.saIds||[]).every(id => doneSaIds.has(id));
-  const allMcDone = (taskRun.task.mcIds||[]).every(id => (taskRun.attempt.mc||{})[id]);
+  const doneSaIds = new Set(myResp.filter(r2 => r2.taskId === taskRun.task.id).map(r2 => r2.qid));
+  const allSaDone = forceHandIn || (taskRun.task.saIds||[]).every(id => doneSaIds.has(id));
+  const mcTarget = r.targetCount || (taskRun.task.mcIds||[]).length;
+  const allMcDone = forceHandIn || (r.targetCount
+    ? (attempt.mcTotal || 0) >= mcTarget
+    : (taskRun.task.mcIds||[]).every(id => (attempt.mc||{})[id]));
+
   const patch = {
-    mc: taskRun.attempt.mc || {}, mcScore: taskRun.attempt.mcScore || 0, mcTotal: taskRun.attempt.mcTotal || 0,
-    startedAt: taskRun.attempt.startedAt || Date.now()
+    mc: attempt.mc || {}, mcScore: attempt.mcScore || 0, mcTotal: attempt.mcTotal || 0,
+    startedAt: attempt.startedAt || Date.now(), livesLeft: taskRun.livesLeft, streakNow: taskRun.streakNow,
+    dailyLog: taskRun.dailyLog, timeUsedSec: taskRun.timeUsedSec, reflections: taskRun.reflections
   };
-  const handedIn = allSaDone && allMcDone;
+
+  const mcPct = mcTarget ? Math.round((attempt.mcScore || 0) / mcTarget * 100) : null;
+  let passed = true, outOfAttempts = false;
+  if (allMcDone && r.passMark != null && mcPct != null) {
+    passed = mcPct >= r.passMark;
+    attempt.lastPct = mcPct;
+    attempt.bestPct = (attempt.bestPct == null) ? mcPct : Math.max(attempt.bestPct, mcPct);
+    patch.lastPct = attempt.lastPct; patch.bestPct = attempt.bestPct;
+    if (!passed) {
+      attempt.attemptNo = (attempt.attemptNo || 1) + 1;
+      attempt.restarts = (attempt.restarts || 0) + 1;
+      attempt.restartReasons = (attempt.restartReasons || []).concat('below passMark@finish').slice(-20);
+      patch.attemptNo = attempt.attemptNo; patch.restarts = attempt.restarts; patch.restartReasons = attempt.restartReasons;
+      if (r.maxAttempts && attempt.attemptNo > r.maxAttempts) {
+        outOfAttempts = true;
+        patch.failed = true; patch.state = 'in_progress';
+      } else {
+        // another attempt is available — reset the MC record so they can retake it
+        patch.mc = {}; patch.mcScore = 0; patch.mcTotal = 0; patch.state = 'in_progress'; patch.livesLeft = r.lives || null; patch.streakNow = 0;
+        if (r.cooldownMin) patch.cooldownUntil = new Date(Date.now() + r.cooldownMin * 60000).toISOString();
+      }
+    }
+  } else if (allMcDone && mcPct != null) {
+    attempt.lastPct = mcPct;
+    attempt.bestPct = (attempt.bestPct == null) ? mcPct : Math.max(attempt.bestPct, mcPct);
+    patch.lastPct = attempt.lastPct; patch.bestPct = attempt.bestPct;
+  }
+
+  const handedIn = allSaDone && allMcDone && passed;
   if (handedIn) { patch.state = 'handed_in'; patch.finishedAt = Date.now(); }
-  else patch.state = 'in_progress';
+  else if (!outOfAttempts && patch.state === undefined) patch.state = 'in_progress';
+
+  // bonusXp: paid once, the first time passMark is met (or on completion if no passMark)
+  if (handedIn && r.bonusXp && !attempt.bonusPaid) {
+    const bonus = clampXpGain({n: mcTarget || 1, mode: 'task'}, r.bonusXp);
+    me.xp += bonus;
+    taskRun.xpEarned += bonus;
+    patch.bonusPaid = true;
+    await saveMe();
+  }
+
   await Store.saveTaskAttempt(taskRun.task.id, me.name, patch);
-  renderTaskDone(handedIn);
+  renderTaskDone(handedIn, {passed, outOfAttempts, mcPct, reportPct: r.scoreKeep === 'last' ? attempt.lastPct : (attempt.bestPct != null ? attempt.bestPct : mcPct)});
 }
 
-function renderTaskDone(handedIn){
-  const t = taskRun.task;
+function renderTaskDone(handedIn, info){
+  info = info || {};
+  const t = taskRun.task, r = taskRun.rules;
+  if (info.outOfAttempts) {
+    $('tdEmoji').textContent = '🚫';
+    $('tdTitle').textContent = 'Out of attempts';
+    $('tdScore').textContent = '';
+    $('tdSub').textContent = 'You did not reach the pass mark (' + r.passMark + '%) within ' + r.maxAttempts + ' attempt' + (r.maxAttempts===1?'':'s') + ' — ask your teacher to reset this task if you think that\'s a mistake.';
+    $('tdXp').textContent = '';
+    $('tdBadges').innerHTML = '';
+    taskRun = null; go('taskdone'); return;
+  }
+  if (info.passed === false) {
+    $('tdEmoji').textContent = '🔁';
+    $('tdTitle').textContent = "Didn't quite hit the pass mark";
+    $('tdScore').textContent = info.mcPct + '% (needed ' + r.passMark + '%)';
+    $('tdSub').textContent = 'You have another attempt — have another go whenever you\'re ready.';
+    $('tdXp').textContent = '';
+    $('tdBadges').innerHTML = '';
+    taskRun = null; go('taskdone'); return;
+  }
   $('tdEmoji').textContent = handedIn ? '✅' : '💾';
   $('tdTitle').textContent = handedIn ? 'Task handed in!' : 'Progress saved';
-  $('tdScore').textContent = (t.mcIds||[]).length ? (taskRun.attempt.mcScore||0) + ' / ' + (taskRun.attempt.mcTotal||0) + ' multiple choice' : '';
+  const mcTarget = r.targetCount || (t.mcIds||[]).length;
+  $('tdScore').textContent = mcTarget ? (taskRun.attempt.mcScore||0) + ' / ' + (taskRun.attempt.mcTotal||mcTarget) + ' multiple choice' : '';
   const totalXp = (taskRun.xpEarned||0) + (taskRun.saXpSession||0);
   $('tdXp').textContent = totalXp ? '+' + totalXp + ' XP earned' : '';
   $('tdBadges').innerHTML = (taskRun.newBadges||[]).map(b =>
@@ -2940,23 +3527,59 @@ function renderTaskDone(handedIn){
   $('tdSub').textContent = handedIn
     ? ((t.saIds||[]).length ? 'Your teacher will mark your written answers — check back here or in "My answers" once they have.' : 'Nicely done.')
     : 'You can come back and finish the rest whenever you like.';
+  const certBox = $('tdCertBox');
+  if (handedIn && r.completionBadge) {
+    certBox.style.display = 'block';
+    certBox.dataset.title = t.title; certBox.dataset.badge = r.completionBadge;
+    certBox.dataset.pct = (info.reportPct != null ? info.reportPct : '') ;
+  } else { certBox.style.display = 'none'; }
   taskRun = null;
   go('taskdone');
+}
+function taskPrintCertificate(){
+  const box = $('tdCertBox');
+  const w = window.open('', '_blank');
+  if (!w) { alert('Your browser blocked the print window pop-up. Allow pop-ups for this site and try again.'); return; }
+  const pctLine = box.dataset.pct ? '<p style="font-size:1.1rem">Score: ' + esc(box.dataset.pct) + '%</p>' : '';
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Certificate</title>
+    <style>@page{size:A4 landscape; margin:24mm} body{font-family:Georgia,serif; text-align:center; padding:40px; color:#1c2340}
+      .frame{border:6px double #1c2340; padding:50px}
+      h1{font-size:2.2rem; margin-bottom:0} h2{font-size:1.5rem; color:#555; font-weight:400}
+      .name{font-size:2rem; margin:26px 0; font-weight:700}
+      .noprint{margin-bottom:20px} @media print{.noprint{display:none}}</style></head>
+    <body><div class="noprint"><button onclick="window.print()">🖨️ Print</button></div>
+    <div class="frame"><h1>Certificate of Completion</h1><h2>${esc(box.dataset.badge)}</h2>
+    <p style="margin-top:30px">This certifies that</p><div class="name">${esc(me.name)}</div>
+    <p>has successfully completed</p><h2>${esc(box.dataset.title)}</h2>
+    ${pctLine}<p style="margin-top:30px">${new Date().toLocaleDateString('en-AU', {day:'numeric', month:'long', year:'numeric'})}</p>
+    </div></body></html>`);
+  w.document.close();
 }
 
 // ---- reviewing a task already handed in ----
 async function openTaskResults(taskId){
   const task = await Store.getTask(taskId);
   if (!task) { alert('That task could not be found.'); return; }
+  const rules = taskRules(task);
   const attempt = await Store.getTaskAttempt(task.id, me.name);
   const myResp = (await Store.getResponsesFor(me.name)).filter(r => r.taskId === task.id);
   $('trvTitle').textContent = task.title;
 
-  const mcQs = (task.mcIds||[]).map(id => QUESTIONS.find(q => q.id === id)).filter(Boolean);
+  const mcTarget = rules.targetCount || (task.mcIds||[]).length;
   const mcScore = attempt ? (attempt.mcScore||0) : 0;
-  const mcTotal = attempt ? (attempt.mcTotal || mcQs.length) : mcQs.length;
+  const mcTotal = attempt ? (attempt.mcTotal || mcTarget) : mcTarget;
   let html = '';
-  if (mcQs.length) html += `<div class="bigstat">${mcScore} / ${mcTotal}</div><p class="center muted" style="margin-bottom:16px">multiple choice</p>`;
+  if (mcTarget) {
+    const reported = rules.scoreKeep === 'last' ? (attempt && attempt.lastPct) : (attempt && attempt.bestPct);
+    html += `<div class="bigstat">${mcScore} / ${mcTotal}</div><p class="center muted" style="margin-bottom:6px">multiple choice</p>`;
+    if (reported != null) html += `<p class="center muted" style="margin-bottom:16px">${rules.scoreKeep === 'last' ? 'Last' : 'Best'} attempt: <b>${reported}%</b></p>`;
+  }
+  if (attempt && ((attempt.attemptNo||1) > 1 || attempt.restarts)) {
+    html += `<div class="muted" style="margin-bottom:16px; font-size:.9rem">Attempt ${attempt.attemptNo||1}` +
+      (rules.maxAttempts ? ' of ' + rules.maxAttempts : '') +
+      (attempt.restarts ? ' · ' + attempt.restarts + ' restart' + (attempt.restarts===1?'':'s') : '') +
+      (attempt.failed ? ' · <span style="color:var(--bad); font-weight:700">out of attempts</span>' : '') + '</div>';
+  }
 
   const saQs = (task.saIds||[]).map(id => SA_QUESTIONS.find(q => q.id === id)).filter(Boolean);
   if (saQs.length) {
