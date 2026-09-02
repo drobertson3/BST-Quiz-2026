@@ -316,6 +316,11 @@ textarea:focus{outline:2px solid var(--accent)}
       <h2>📋 Assigned tasks</h2>
       <div id="myTasksList"></div>
     </div>
+    <div class="card">
+      <h2>📋 Class task board</h2>
+      <p class="muted">See how the class is going on set tasks — restarts, pass marks and certificates.</p>
+      <button class="btn small primary" onclick="showTaskBoard()">Open task board</button>
+    </div>
     <div class="menu">
       <button class="menubtn" onclick="showSetup('quiz')"><div class="e">🚀</div><div class="t">Multiple Choice Quiz</div><div class="d">Random past HSC questions</div></button>
       <button class="menubtn" onclick="showSetupSA()"><div class="e">✍️</div><div class="t">Short Answer Quiz</div><div class="d" id="saDesc">Write answers for your teacher to mark</div></button>
@@ -574,6 +579,23 @@ textarea:focus{outline:2px solid var(--accent)}
     <div class="card">
       <div class="row" id="boardFilter" style="margin-bottom:12px"></div>
       <div id="boardTable">Loading…</div>
+    </div>
+  </div>
+
+  <!-- ============ CLASS TASK BOARD ============ -->
+  <div id="scr-taskboard" class="screen">
+    <a class="back" onclick="renderHome();go('home')">← home</a>
+    <h1 style="margin:10px 0 16px">📋 Class task board</h1>
+    <div class="card">
+      <h2>Noticeboard</h2>
+      <div id="tbFeed">Loading…</div>
+    </div>
+    <div class="card">
+      <h2>Leaderboard</h2>
+      <div class="row" style="margin-bottom:12px">
+        <select id="tbTaskSelect" onchange="renderTaskBoardLeaderboard()" style="max-width:100%"></select>
+      </div>
+      <div id="tbLeaderboard">Loading…</div>
     </div>
   </div>
 
@@ -1165,6 +1187,7 @@ textarea:focus{outline:2px solid var(--accent)}
   <div id="scr-taskrun" class="screen">
     <div class="quizhead" style="margin-bottom:12px">
       <span class="chip" id="trCounter"></span>
+      <span class="chip" id="trAccuracy" style="display:none"></span>
       <span class="chip lives" id="trLives" style="display:none"></span>
       <span class="chip streak" id="trStreak" style="display:none"></span>
       <span class="chip timer" id="trQTimer" style="display:none"></span>
@@ -2313,6 +2336,7 @@ function renderExamResult(attempt, pct, xpGain, newBadges, review, auto){
 
 // ---------- leaderboard ----------
 let boardStudents = [], boardClassMap = {}, boardFilter = 'all';
+let tbTasks = [], tbAttempts = [], tbEvents = [], tbRoster = [], tbClassMap = {};
 
 async function showLeaderboard(){
   go('board');
@@ -2675,8 +2699,22 @@ function taskRules(t){
     instantFeedback: true, showExplanations: true, showRunningScore: true,
     // F. rewards & integrity
     xpMultiplier: 1, bonusXp: null, completionBadge: null, focusStrict: false,
-    unlockCode: null, reflectOnWrong: false
+    unlockCode: null, reflectOnWrong: false, publicBoard: true
   }, (t && t.rules) || {});
+}
+// taskRules() applies defaults (including publicBoard:true) even to legacy tasks
+// whose t.rules is null — so it must never be used alone to decide whether a
+// task broadcasts. Legacy tasks (rules null) are treated as publicBoard FALSE
+// (plan §7.1): nothing about them is ever written to the noticeboard feed.
+function taskOnBoard(t){ return !!(t && t.rules) && taskRules(t).publicBoard !== false; }
+// Best-effort noticeboard/leaderboard event emit — never throws, never blocks a run.
+function taskEmitEvent(type, detail){
+  try {
+    if (!taskRun || !taskOnBoard(taskRun.task)) return;
+    const t = taskRun.task;
+    const cls = (typeof classOf === 'function' ? classOf(me) : null) || me.class || '';
+    Promise.resolve(Store.addTaskEvent({ taskId: t.id, taskTitle: t.title, name: me.name, cls, type, detail: String(detail ?? ''), at: new Date().toISOString() })).catch(()=>{});
+  } catch(e){}
 }
 function taskIsGenerated(t){ return !!taskRules(t).targetCount; }
 // Seed used for every deterministic pick this task makes. Shared across the whole
@@ -2887,6 +2925,127 @@ function taskCardHtmlStudent(t, allAttempts, myResponses){
   </div>`;
 }
 
+// ---- class task board (noticeboard + leaderboard, §7.3) ----
+// Relative-time helper for the feed — terse, matching fmtTime/fmtIvl's style.
+function timeAgo(iso){
+  const ms = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return min + 'm ago';
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return hr + 'h ago';
+  return Math.floor(hr / 24) + 'd ago';
+}
+// Turns a taskRestart() reason string ('accuracy@Q23', 'sudden death@Q7',
+// 'out of lives@Q41') into feed wording ("accuracy fell below the cut-off at Q23").
+function taskBoardReasonLabel(detail){
+  const [reason, qAt] = String(detail || '').split('@');
+  const map = {accuracy: 'accuracy fell below the cut-off', 'sudden death': 'sudden death', 'out of lives': 'out of lives'};
+  const label = map[reason] || reason || 'a restart';
+  return qAt ? label + ' at ' + qAt : label;
+}
+function taskBoardEventText(ev){
+  const name = esc(ev.name), title = esc(ev.taskTitle);
+  switch (ev.type) {
+    case 'restart':     return `🔄 ${name} restarted "${title}" (${esc(taskBoardReasonLabel(ev.detail))})`;
+    case 'passed':       return `🎉 ${name} passed "${title}" with ${esc(ev.detail)}%`;
+    case 'handed_in':    return `✅ ${name} handed in "${title}"` + (ev.detail ? ` with ${esc(ev.detail)}%` : '');
+    case 'failed':       return `🚫 ${name} ran out of attempts on "${title}"`;
+    case 'certificate':  return `🏅 ${name} earned the "${esc(ev.detail)}" certificate for "${title}"`;
+    default:             return `${name} — ${title}`;
+  }
+}
+async function showTaskBoard(){
+  go('taskboard');
+  $('tbFeed').innerHTML = 'Loading…';
+  $('tbLeaderboard').innerHTML = 'Loading…';
+  try {
+    const [events, tasks, attempts, ros, cmap] = await Promise.all([
+      Store.getTaskEvents(50), Store.getAllTasks(), Store.getAllTaskAttempts(), Store.getRoster(), Store.getClassMap()
+    ]);
+    tbTasks = tasks.filter(taskOnBoard);
+    tbAttempts = attempts;
+    tbRoster = ros || [];
+    tbClassMap = cmap || {};
+    const boardIds = new Set(tbTasks.map(t => t.id));
+    tbEvents = events.filter(ev => boardIds.has(ev.taskId));
+  } catch(e) {
+    tbTasks = []; tbAttempts = []; tbEvents = []; tbRoster = []; tbClassMap = {};
+  }
+  renderTaskBoardFeed();
+  renderTaskBoardTaskSelect();
+}
+function renderTaskBoardFeed(){
+  if (!tbEvents.length) { $('tbFeed').innerHTML = '<p class="muted">No task activity yet.</p>'; return; }
+  $('tbFeed').innerHTML = tbEvents.slice(0, 30).map(ev => {
+    const mine = ev.name === me.name;
+    return `<div class="taskcard" style="padding:10px 14px; margin-bottom:8px${mine ? '; border-left-color:var(--gold); background:rgba(255,206,84,.08)' : ''}">
+      ${taskBoardEventText(ev)} <span class="muted">— ${timeAgo(ev.at)}</span>
+    </div>`;
+  }).join('');
+}
+function renderTaskBoardTaskSelect(){
+  const sel = $('tbTaskSelect');
+  if (!tbTasks.length) {
+    sel.innerHTML = '<option value="">No tasks yet</option>';
+    $('tbLeaderboard').innerHTML = '<p class="muted">No class tasks with the noticeboard on yet.</p>';
+    return;
+  }
+  sel.innerHTML = tbTasks.map(t => `<option value="${esc(t.id)}">${esc(t.title)}</option>`).join('');
+  sel.value = tbTasks[0].id;
+  renderTaskBoardLeaderboard();
+}
+function renderTaskBoardLeaderboard(){
+  const taskId = $('tbTaskSelect').value;
+  const task = tbTasks.find(t => t.id === taskId);
+  if (!task) { $('tbLeaderboard').innerHTML = '<p class="muted">No class tasks with the noticeboard on yet.</p>'; return; }
+  const rules = taskRules(task);
+  const denom = rules.targetCount || (task.mcIds || []).length;
+  const attempts = tbAttempts.filter(a => a.taskId === taskId);
+
+  const rows = attempts.map(a => {
+    let pct;
+    if (rules.scoreKeep === 'last' && a.lastPct != null) pct = a.lastPct;
+    else if (a.bestPct != null) pct = a.bestPct;
+    else pct = (a.mcTotal && denom) ? Math.round((a.mcScore || 0) / denom * 100) : null;
+    const state = a.failed ? 'failed' : (a.state === 'handed_in' || a.state === 'marked') ? 'handed_in' : 'in_progress';
+    return {name: a.name, cls: tbClassMap[a.name] || '', pct, answered: a.mcTotal || 0, attemptNo: a.attemptNo || 1, restarts: a.restarts || 0, state};
+  });
+  rows.sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1));
+
+  // Greyed non-starters: roster members assigned to this task (by class or by name)
+  // who have no attempt at all yet. Skipped gracefully if roster/class data is thin.
+  const started = new Set(rows.map(r => r.name));
+  const notStarted = tbRoster
+    .filter(n => !started.has(n) && ((task.classes || []).includes(tbClassMap[n]) || (task.students || []).includes(n)))
+    .map(n => ({name: n, cls: tbClassMap[n] || ''}));
+
+  if (!rows.length && !notStarted.length) { $('tbLeaderboard').innerHTML = '<p class="muted">No attempts yet — be the first!</p>'; return; }
+
+  let html = '<div class="tablewrap"><table><tr><th>#</th><th>Name</th><th>Class</th><th>Progress</th><th>Best %</th><th>Attempts</th><th>Restarts</th><th>State</th></tr>';
+  rows.forEach((r, i) => {
+    const rank = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+    const progressPct = denom ? Math.min(100, Math.round(r.answered / denom * 100)) : 0;
+    html += `<tr class="${r.name === me.name ? 'me' : ''}">
+      <td>${rank}</td><td>${esc(r.name)}</td><td class="muted">${esc(r.cls || '—')}</td>
+      <td><div class="pbar" style="max-width:120px; margin:0"><div style="width:${progressPct}%"></div></div>
+          <span class="muted" style="font-size:.72rem">${r.answered}/${denom || '?'}</span></td>
+      <td>${r.pct != null ? r.pct + '%' : '—'}</td>
+      <td>${r.attemptNo}</td>
+      <td>${r.restarts}</td>
+      <td>${taskStatePillHtml(r.state)}</td>
+    </tr>`;
+  });
+  notStarted.forEach(r => {
+    html += `<tr style="opacity:.5" class="${r.name === me.name ? 'me' : ''}">
+      <td>—</td><td>${esc(r.name)}</td><td class="muted">${esc(r.cls || '—')}</td>
+      <td class="muted">—</td><td class="muted">—</td><td class="muted">—</td><td class="muted">—</td>
+      <td>${taskStatePillHtml('not_started')}</td>
+    </tr>`;
+  });
+  $('tbLeaderboard').innerHTML = html + '</table></div>';
+}
+
 // ---- taking a task ----
 async function openTask(taskId){
   const task = await Store.getTask(taskId);
@@ -3048,6 +3207,20 @@ function taskStartTotalTimer(){
   }, 1000);
 }
 
+// Live in-run accuracy chip — respects showRunningScore:false like trCounter/trProgress.
+function updateTrAccuracy(){
+  const r = taskRun.rules, a = taskRun.attempt;
+  const chip = $('trAccuracy');
+  if (r.showRunningScore === false || !a || !a.mcTotal) { chip.style.display = 'none'; return; }
+  const pct = Math.round(a.mcScore / a.mcTotal * 100);
+  let txt = pct + '% correct';
+  if (r.minAccuracy) txt += ' · need ≥' + r.minAccuracy + '%';
+  if (r.minAccuracy) chip.style.color = pct >= r.minAccuracy ? 'var(--good)' : 'var(--bad)';
+  else chip.style.color = '';
+  chip.textContent = txt;
+  chip.style.display = '';
+}
+
 // ---- MC phase ----
 function showTaskMCQuestion(){
   const q = taskRun.mcQs[taskRun.mcI];
@@ -3062,6 +3235,7 @@ function showTaskMCQuestion(){
   $('trProgress').style.width = ((taskRun.mcAnsweredTotal + taskRun.mcI) / taskRun.mcGrandTotal * 100) + '%';
   $('trCounter').style.display = r.showRunningScore === false ? 'none' : '';
   $('trProgress').parentElement.style.visibility = r.showRunningScore === false ? 'hidden' : 'visible';
+  updateTrAccuracy();
   $('trMeta').textContent = q.year + ' HSC · Question ' + q.n;
   $('trImg').src = q.img; $('trImg').alt = q.year + ' HSC Question ' + q.n;
   $('trFeedback').style.display = 'none';
@@ -3128,6 +3302,7 @@ async function taskAnswerMC(letter, timedOut){
   taskRun.attempt.mcScore = Object.values(taskRun.attempt.mc).filter(x => x.ok).length;
   taskRun.attempt.mcTotal = Object.keys(taskRun.attempt.mc).length;
   taskRun.attempt.state = 'in_progress';
+  updateTrAccuracy();
   taskRun.sessionAnswers.push({id: q.id, right, counted: right && !tooFast});
 
   // streak / lives bookkeeping
@@ -3304,6 +3479,7 @@ async function taskRestart(reason){
     attempt.failed = true;
     outOfAttempts = true;
   }
+  taskEmitEvent(outOfAttempts ? 'failed' : 'restart', outOfAttempts ? 'out of attempts' : reason);
 
   try {
     await Store.saveTaskAttempt(taskRun.task.id, me.name, {
@@ -3521,6 +3697,13 @@ async function finishTaskRun(forceHandIn){
     taskRun.xpEarned += bonus;
     patch.bonusPaid = true;
     await saveMe();
+  }
+
+  if (outOfAttempts) {
+    taskEmitEvent('failed', 'out of attempts');
+  } else if (handedIn) {
+    taskEmitEvent(r.passMark != null ? 'passed' : 'handed_in', r.passMark != null ? String(mcPct) : String(mcPct != null ? mcPct : ''));
+    if (r.completionBadge) taskEmitEvent('certificate', r.completionBadge);
   }
 
   await Store.saveTaskAttempt(taskRun.task.id, me.name, patch);

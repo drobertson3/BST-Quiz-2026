@@ -420,6 +420,28 @@ const Store = (() => {
     lsSet('hscq_taskAttempts', all);
   }
 
+  // ---- task events (append-only noticeboard/leaderboard feed) ----
+  // Collection `taskEvents`, auto-id docs: {taskId, taskTitle, name, cls, type,
+  // detail, at (ISO string)}. Written only for tasks with rules.publicBoard
+  // true (see taskEmitEvent in index.html) — best-effort, never blocks a run.
+  // localStorage fallback key hscq_taskEvents: array capped at 200 newest.
+  async function addTaskEvent(ev){
+    if (cloud) { await db.collection('taskEvents').add(ev); return; }
+    const all = lsGet('hscq_taskEvents', []);
+    all.push(ev);
+    all.sort((a,b) => new Date(a.at) - new Date(b.at));
+    lsSet('hscq_taskEvents', all.slice(-200));
+  }
+  async function getTaskEvents(limit){
+    limit = limit || 50;
+    if (cloud) {
+      const snap = await db.collection('taskEvents').orderBy('at','desc').limit(limit).get();
+      return snap.docs.map(d => d.data());
+    }
+    const all = lsGet('hscq_taskEvents', []);
+    return [...all].sort((a,b) => new Date(b.at) - new Date(a.at)).slice(0, limit);
+  }
+
   // ---- announcements (teacher dashboard writes; students read) ----
   // meta/announcements = {items: [{id, text, created (ISO string), expires ("YYYY-MM-DD"|null)}]}
   // localStorage fallback key: hscq_announcements, holding the same `items` array
@@ -441,6 +463,7 @@ const Store = (() => {
            createResponse, getAllResponses, getResponsesFor, getPeerMarkable,
            setResponseAI, setResponseMark, reopenResponse, addPeerMark, deleteResponse,
            getAllTasks, getTask, getAllTaskAttempts, getTaskAttempt, saveTaskAttempt,
+           addTaskEvent, getTaskEvents,
            getAnnouncements };
 })();
 
