@@ -1171,9 +1171,10 @@ textarea:focus{outline:2px solid var(--accent)}
       <span class="chip timer" id="trTotalTimer" style="display:none"></span>
       <span class="chip" id="trFocusChip" style="display:none; font-size:.75rem"></span>
       <div class="pbar"><div id="trProgress"></div></div>
-      <button class="btn small ghost" onclick="quitTaskRun()">Quit</button>
+      <button class="btn small ghost" onclick="quitTaskRun()">Save &amp; exit</button>
     </div>
     <div class="card" style="padding:14px">
+      <div class="chip" id="trWelcome" style="display:none; margin-bottom:10px; background:rgba(255,206,84,.16); color:var(--gold); cursor:pointer" onclick="this.style.display='none'"></div>
       <div class="muted" id="trMeta"></div>
       <div class="qimgbox"><img id="trImg" alt="HSC question"></div>
       <div class="ansgrid" id="trAns">
@@ -1212,9 +1213,10 @@ textarea:focus{outline:2px solid var(--accent)}
     <div class="quizhead" style="margin-bottom:12px">
       <span class="chip" id="tsCounter"></span>
       <div class="pbar"><div id="tsProgress"></div></div>
-      <button class="btn small ghost" onclick="quitTaskRun()">Quit</button>
+      <button class="btn small ghost" onclick="quitTaskRun()">Save &amp; exit</button>
     </div>
     <div class="card" style="padding:14px">
+      <div class="chip" id="tsWelcome" style="display:none; margin-bottom:10px; background:rgba(255,206,84,.16); color:var(--gold); cursor:pointer" onclick="this.style.display='none'"></div>
       <div class="row" style="justify-content:space-between">
         <div class="muted" id="tsMeta"></div>
         <span class="markchip" id="tsMarkChip"></span>
@@ -2852,6 +2854,17 @@ function taskCardHtmlStudent(t, allAttempts, myResponses){
   const livesLine = (rules.lives && attempt && attempt.livesLeft != null && state === 'in_progress')
     ? '<span class="lives">' + '♥'.repeat(Math.max(0,attempt.livesLeft)) + '🖤'.repeat(Math.max(0,rules.lives-attempt.livesLeft)) + '</span>' : '';
 
+  // "come back later" progress cue — answered count handles both mc-key styles (sNNN or
+  // qid) the same way, since mcTotal is just Object.keys(mc).length either way.
+  let progressLine = '';
+  if (state === 'in_progress' && mcTotalTask && mcTotal > 0) {
+    const answeredPct = Math.min(100, Math.round(mcTotal / mcTotalTask * 100));
+    const correctPct = Math.round(mcScore / mcTotal * 100);
+    progressLine = `<div class="muted" style="margin-top:6px; font-size:.82rem">${mcTotal} of ${mcTotalTask} answered` +
+      (rules.showRunningScore === false ? '' : ` · ${correctPct}% correct so far`) + `</div>
+      <div class="pbar" style="margin-top:4px; max-width:260px"><div style="width:${answeredPct}%"></div></div>`;
+  }
+
   return `<div class="taskcard${overdue ? ' overdue' : ''}">
     <div class="row" style="justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px">
       <div>
@@ -2863,6 +2876,7 @@ function taskCardHtmlStudent(t, allAttempts, myResponses){
         </div>
         ${chips.length ? `<div style="margin-top:6px">${chips.map(c => `<span class="chip" style="padding:2px 8px; font-size:.72rem; margin-right:4px">${esc(c)}</span>`).join('')}</div>` : ''}
         ${scoreLine ? `<div style="margin-top:6px">${scoreLine} ${livesLine}</div>` : ''}
+        ${progressLine}
         ${attemptLine ? `<div class="muted" style="margin-top:4px; font-size:.8rem">${esc(attemptLine)}</div>` : ''}
       </div>
       <div class="row" style="flex-shrink:0">
@@ -2925,9 +2939,14 @@ async function openTask(taskId){
   let mcQs, seqKeys, mcAnsweredTotal, mcGrandTotal, genIds = null, seqCounter = 0;
 
   if (rules.targetCount) {
-    genIds = taskBuildGeneratedIds(rules, seedStr, rules.targetCount);
     const answeredSeq = Object.keys((attempt && attempt.mc) || {}).filter(k => /^s\d+$/.test(k));
     mcAnsweredTotal = answeredSeq.length;
+    // A prior session may have extended the generated list past targetCount (finishStreak /
+    // recycleMissed re-queues) before the student saved & exited — rebuild at least that many
+    // slots so resume doesn't shrink the list back to targetCount and finish the run early.
+    // taskBuildGeneratedIds is a pure function of (seed, count), so this reproduces the exact
+    // same prefix the earlier, longer build produced — never a different list.
+    genIds = taskBuildGeneratedIds(rules, seedStr, Math.max(rules.targetCount, mcAnsweredTotal));
     seqCounter = mcAnsweredTotal;
     mcQs = []; seqKeys = [];
     for (let i = mcAnsweredTotal; i < genIds.length; i++) {
@@ -2969,7 +2988,8 @@ async function openTask(taskId){
               dailyLog: attempt.dailyLog || {}, focusFlags: attempt.focusFlags || 0,
               reflections: attempt.reflections || {}, timeUsedSec: attempt.timeUsedSec || 0,
               qTimeLeft: null, totalTimeLeft: rules.totalTimeMin ? Math.max(0, rules.totalTimeMin * 60 - (attempt.timeUsedSec || 0)) : null,
-              perQTimer: null, totalTimer: null, pendingReflect: false };
+              perQTimer: null, totalTimer: null, pendingReflect: false,
+              startedInSA: !mcQs.length, mcWelcomeShown: false, saWelcomeShown: false };
 
   if (!mcQs.length && !saQs.length) { await finishTaskRun(); return; }   // nothing left unanswered for this student
   taskFocusListenerAttach();
@@ -2979,7 +2999,7 @@ async function openTask(taskId){
 }
 
 function quitTaskRun(){
-  if (confirm('Quit this task? Anything you have already answered or handed in is saved — you can come back and finish later.')) {
+  if (confirm("Save your progress and exit? Everything you've answered so far is saved — come back and resume any time.")) {
     taskTeardownTimers();
     taskRun = null; renderHome(); go('home');
   }
@@ -3032,6 +3052,12 @@ function taskStartTotalTimer(){
 function showTaskMCQuestion(){
   const q = taskRun.mcQs[taskRun.mcI];
   const r = taskRun.rules;
+  const welcome = $('trWelcome');
+  if (taskRun.mcI === 0 && !taskRun.mcWelcomeShown && taskRun.mcAnsweredTotal > 0) {
+    welcome.textContent = '👋 Welcome back — picking up at question ' + (taskRun.mcAnsweredTotal + 1) + ' of ' + taskRun.mcGrandTotal + '.';
+    welcome.style.display = 'inline-block';
+    taskRun.mcWelcomeShown = true;
+  } else welcome.style.display = 'none';
   $('trCounter').textContent = (taskRun.mcAnsweredTotal + taskRun.mcI + 1) + ' / ' + taskRun.mcGrandTotal;
   $('trProgress').style.width = ((taskRun.mcAnsweredTotal + taskRun.mcI) / taskRun.mcGrandTotal * 100) + '%';
   $('trCounter').style.display = r.showRunningScore === false ? 'none' : '';
@@ -3366,6 +3392,12 @@ function updateTaskSAWordCount(){
 }
 function showTaskSAQuestion(){
   const q = taskRun.saQs[taskRun.saI];
+  const welcome = $('tsWelcome');
+  if (taskRun.startedInSA && taskRun.saI === 0 && !taskRun.saWelcomeShown && taskRun.saAnsweredBefore > 0) {
+    welcome.textContent = '👋 Welcome back — picking up at question ' + (taskRun.saAnsweredBefore + 1) + ' of ' + taskRun.saGrandTotal + '.';
+    welcome.style.display = 'inline-block';
+    taskRun.saWelcomeShown = true;
+  } else welcome.style.display = 'none';
   $('tsCounter').textContent = (taskRun.saAnsweredBefore + taskRun.saI + 1) + ' / ' + taskRun.saGrandTotal;
   $('tsProgress').style.width = ((taskRun.saAnsweredBefore + taskRun.saI) / taskRun.saGrandTotal * 100) + '%';
   $('tsMeta').textContent = q.year + ' HSC · Question ' + q.n + (q.part ? '(' + q.part + ')' : '') + ' · ' + q.topic;
@@ -3602,7 +3634,7 @@ async function openTaskResults(taskId){
       }
     }
   }
-  if (!mcQs.length && !saQs.length) html = '<p class="muted">This task has no questions.</p>';
+  if (!html) html = '<p class="muted">This task has no questions.</p>';
   $('trvBody').innerHTML = html;
   go('taskview');
 }
