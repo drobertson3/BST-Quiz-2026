@@ -442,6 +442,23 @@ const Store = (() => {
     return [...all].sort((a,b) => new Date(b.at) - new Date(a.at)).slice(0, limit);
   }
 
+  // Realtime feed for live banners. cb(added, isFirstSnapshot) where `added` is an
+  // array of {id, ...eventData} for docs added since the last snapshot. On the first
+  // snapshot `added` is the current backlog (isFirstSnapshot true) so the caller can
+  // seed its seen-set WITHOUT notifying. No cross-device realtime in local mode.
+  function watchTaskEvents(cb){
+    if (!cloud) return function(){};
+    let first = true;
+    try {
+      return db.collection('taskEvents').orderBy('at','desc').limit(15).onSnapshot(function(snap){
+        const added = [];
+        snap.docChanges().forEach(function(ch){ if (ch.type === 'added') added.push(Object.assign({id: ch.doc.id}, ch.doc.data())); });
+        try { cb(added, first); } catch(e){}
+        first = false;
+      }, function(){ /* permission/other error: silently stop */ });
+    } catch(e){ return function(){}; }
+  }
+
   // ---- announcements (teacher dashboard writes; students read) ----
   // meta/announcements = {items: [{id, text, created (ISO string), expires ("YYYY-MM-DD"|null)}]}
   // localStorage fallback key: hscq_announcements, holding the same `items` array
@@ -463,7 +480,7 @@ const Store = (() => {
            createResponse, getAllResponses, getResponsesFor, getPeerMarkable,
            setResponseAI, setResponseMark, reopenResponse, addPeerMark, deleteResponse,
            getAllTasks, getTask, getAllTaskAttempts, getTaskAttempt, saveTaskAttempt,
-           addTaskEvent, getTaskEvents,
+           addTaskEvent, getTaskEvents, watchTaskEvents,
            getAnnouncements };
 })();
 

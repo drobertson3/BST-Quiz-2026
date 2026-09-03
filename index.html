@@ -259,9 +259,15 @@ textarea:focus{outline:2px solid var(--accent)}
 .taskcard{background:var(--card2); border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:12px; padding:14px 16px; margin-bottom:10px}
 .taskcard.overdue{border-left-color:var(--bad)}
 .taskcard .pill{margin-left:6px; vertical-align:middle}
+/* ---- live top-banner toasts (realtime restart notifications) ---- */
+.livetoast{background:var(--card); border:1px solid var(--line); border-left:4px solid var(--gold); color:var(--ink); border-radius:12px; padding:12px 16px; box-shadow:0 8px 24px rgba(0,0,0,.35); max-width:520px; width:calc(100% - 20px); pointer-events:auto; cursor:pointer; font-size:.9rem; animation:toastIn .3s ease}
+.livetoast.out{animation:toastOut .35s ease forwards}
+@keyframes toastIn{from{opacity:0; transform:translateY(-120%)}to{opacity:1; transform:translateY(0)}}
+@keyframes toastOut{from{opacity:1; transform:translateY(0)}to{opacity:0; transform:translateY(-120%)}}
 </style>
 </head>
 <body>
+<div id="liveToasts" style="position:fixed; top:0; left:0; right:0; z-index:9999; display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px; pointer-events:none"></div>
 <div class="wrap">
   <div id="localBanner" class="banner">⚠️ Practice mode — results are saved on this device only. Ask your teacher if scores should be syncing.</div>
 
@@ -1424,7 +1430,7 @@ async function submitPin(){
   sessionStorage.setItem('hscq_login', pendingName);
   renderHome(); go('home');
 }
-function logout(){ me = null; sessionStorage.removeItem('hscq_login'); backToNames(); go('login'); }
+function logout(){ stopLiveEvents(); me = null; sessionStorage.removeItem('hscq_login'); backToNames(); go('login'); }
 
 // ---------- home ----------
 function renderHome(){
@@ -1487,6 +1493,7 @@ function renderHome(){
   refreshAnswerBadge();
   refreshMyTasks();
   refreshAnnouncements();
+  startLiveEvents();
 }
 
 // show non-expired teacher announcements, newest first; hide the card when there are none
@@ -3044,6 +3051,52 @@ function renderTaskBoardLeaderboard(){
     </tr>`;
   });
   $('tbLeaderboard').innerHTML = html + '</table></div>';
+}
+
+// ---- live top-banner toasts (realtime restart notifications, §7.3) ----
+// Pushes a toast to every OTHER logged-in student the moment someone restarts a
+// task — a realtime complement to the pull-based board above. No-ops entirely
+// in local (no-cloud) mode since Store.watchTaskEvents returns a no-op unsub.
+let liveEventsUnsub = null;
+const liveSeenIds = new Set();
+const liveSessionStart = new Date().toISOString();
+function startLiveEvents(){
+  if (liveEventsUnsub || !me) return;
+  liveEventsUnsub = Store.watchTaskEvents(handleLiveEvents);
+}
+function stopLiveEvents(){
+  if (liveEventsUnsub) { try { liveEventsUnsub(); } catch(e){} liveEventsUnsub = null; }
+  liveSeenIds.clear();
+}
+function handleLiveEvents(added, isFirst){
+  const toBanner = [];
+  (added || []).forEach(ev => {
+    const isNew = !liveSeenIds.has(ev.id);
+    liveSeenIds.add(ev.id);
+    if (!isFirst && isNew && ev.type === 'restart' && ev.name !== me.name && ev.at > liveSessionStart) toBanner.push(ev);
+  });
+  if (isFirst) return;
+  toBanner.forEach(ev => {
+    let html = '🔄 ' + esc(ev.name) + ' had to restart “' + esc(ev.taskTitle) + '”';
+    if (ev.detail) html += ' — ' + esc(taskBoardReasonLabel(ev.detail));
+    showLiveToast(html);
+  });
+}
+function showLiveToast(html){
+  const box = $('liveToasts');
+  if (!box) return;
+  while (box.children.length > 4) box.removeChild(box.firstChild);
+  const el = document.createElement('div');
+  el.className = 'livetoast';
+  el.innerHTML = html;
+  el.onclick = () => { showTaskBoard(); dismissLiveToast(el); };
+  box.appendChild(el);
+  setTimeout(() => dismissLiveToast(el), 7000);
+}
+function dismissLiveToast(el){
+  if (!el || !el.parentNode || el.classList.contains('out')) return;
+  el.classList.add('out');
+  setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 400);
 }
 
 // ---- taking a task ----
